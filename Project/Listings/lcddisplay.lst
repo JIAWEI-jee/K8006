@@ -1,0 +1,698 @@
+C51 COMPILER V9.56.0.0   LCDDISPLAY                                                        08/07/2020 15:18:25 PAGE 1   
+
+
+C51 COMPILER V9.56.0.0, COMPILATION OF MODULE LCDDISPLAY
+OBJECT MODULE PLACED IN .\Objects\lcddisplay.obj
+COMPILER INVOKED BY: C:\program_list\keil\C51\BIN\C51.EXE ..\hardware\LCDdisplay\lcddisplay.c LARGE OPTIMIZE(8,SPEED) BR
+                    -OWSE INCDIR(..\hardware\DELAY;..\hardware\ADC;..\hardware\Flash;..\hardware\Uart;..\hardware\Key;..\hardware\Pwm;..\hard
+                    -ware\WDT;..\hardware\Timer;..\hardware\LCDdisplay;..\hardware\PID) DEBUG OBJECTEXTEND PRINT(.\Listings\lcddisplay.lst) T
+                    -ABS(2) OBJECT(.\Objects\lcddisplay.obj)
+
+line level    source
+
+   1          #include "lcddisplay.h"
+   2          #include "flash.h"
+   3          
+   4          display_set lcd_set = {0,0};
+   5          
+   6          unsigned char guc_DisFreshStep = 0;
+   7          void set_gap ( u8 gap );
+   8          void set_time ( u8 temp );
+   9          
+  10          void LCD_Init ( void )
+  11          {
+  12   1        /***********************************LCD配置初始化**************************************/
+  13   1        LCDCON |= 0xE8;                     //使能LCD，50K电阻，1/3bias
+  14   1        COMP1EN |= 0x06;                    //COM使能P11 P12
+  15   1        COMP2EN |= 0x08;                    //COM使能P23
+  16   1        COMP3EN |= 0x10;                    //COM使能P34
+  17   1      
+  18   1        SEGP1EN |= 0xF8;                    //SEG口使能P1口，P17 P16 P15 P14 P13 为SEG1 SEG2 SEG3 SEG4 SEG5
+  19   1      
+  20   1        SEG1 = 0;
+  21   1        SEG2 = 0;
+  22   1        SEG3 = 0;
+  23   1        SEG4 = 0;
+  24   1        SEG5 = 0;
+  25   1      }
+  26          
+  27          void lcd_clear_all ( void )
+  28          {
+  29   1        lcd_set.gap_display = Clear_lcd;
+  30   1        lcd_set.time_display = Clear_lcd;
+  31   1      }
+  32          void lcd_error ( void )
+  33          {
+  34   1        static u8 error_std = 0;
+  35   1        if ( error_std == 0 )
+  36   1        {
+  37   2          lcd_set.gap_display = Clear_lcd;
+  38   2          lcd_set.time_display = Clear_lcd;
+  39   2          error_std = 1;
+  40   2        }
+  41   1        else if ( error_std == 1 )
+  42   1        {
+  43   2          lcd_set.gap_display = Error;
+  44   2          error_std = 0;
+  45   2        }
+  46   1      
+  47   1      }
+  48          void lcd_display_time ( u8 time )
+  49          {
+  50   1        lcd_set.time_display = time;
+  51   1      }
+  52          
+C51 COMPILER V9.56.0.0   LCDDISPLAY                                                        08/07/2020 15:18:25 PAGE 2   
+
+  53          void lcd_display_gap ( u8 gap )
+  54          {
+  55   1      
+  56   1        lcd_set.gap_display = gap;
+  57   1      
+  58   1      }
+  59          void lcd_display_On ( void )
+  60          {
+  61   1      
+  62   1        lcd_set.gap_display = all_on;
+  63   1        lcd_set.time_display = all_on;
+  64   1      }
+  65          void LCD_Display ( void )
+  66          {
+  67   1      
+  68   1        switch ( guc_DisFreshStep )
+  69   1        {
+  70   2          case Frame0_COM0:
+  71   2            LCDCON &=~ 0x10;   //FRAME 0
+  72   2      
+  73   2            COM0 = 1;
+  74   2            COM1 = 0;
+  75   2            COM2 = 0;
+  76   2            COM3 = 0;
+  77   2      
+  78   2            set_time ( lcd_set.time_display );
+  79   2            set_gap ( lcd_set.gap_display );
+  80   2            guc_DisFreshStep = Frame0_COM1;
+  81   2            break;
+  82   2          case Frame0_COM1:
+  83   2            COM0 = 0;
+  84   2            COM1 = 1;
+  85   2            COM2 = 0;
+  86   2            COM3 = 0;
+  87   2            set_time ( lcd_set.time_display );
+  88   2            set_gap ( lcd_set.gap_display );
+  89   2            guc_DisFreshStep = Frame0_COM2;
+  90   2            break;
+  91   2          case Frame0_COM2:
+  92   2      
+  93   2            COM0 = 0;
+  94   2            COM1 = 0;
+  95   2            COM2 = 1;
+  96   2            COM3 = 0;
+  97   2      
+  98   2            set_time ( lcd_set.time_display );
+  99   2            set_gap ( lcd_set.gap_display );
+ 100   2            guc_DisFreshStep = Frame0_COM3;
+ 101   2            break;
+ 102   2          case Frame0_COM3:
+ 103   2      
+ 104   2            COM0 = 0;
+ 105   2            COM1 = 0;
+ 106   2            COM2 = 0;
+ 107   2            COM3 = 1;
+ 108   2            set_time ( lcd_set.time_display );
+ 109   2      
+ 110   2            set_gap ( lcd_set.gap_display );
+ 111   2            guc_DisFreshStep = Frame1_COM0;
+ 112   2            break;
+ 113   2          case Frame1_COM0:
+ 114   2            LCDCON |= 0x10;   //FRAME 1
+C51 COMPILER V9.56.0.0   LCDDISPLAY                                                        08/07/2020 15:18:25 PAGE 3   
+
+ 115   2      
+ 116   2            COM0 = 1;
+ 117   2            COM1 = 0;
+ 118   2            COM2 = 0;
+ 119   2            COM3 = 0;
+ 120   2      
+ 121   2      
+ 122   2            set_time ( lcd_set.time_display );
+ 123   2      
+ 124   2            set_gap ( lcd_set.gap_display );
+ 125   2      
+ 126   2            guc_DisFreshStep = Frame1_COM1;
+ 127   2            break;
+ 128   2          case Frame1_COM1:
+ 129   2      
+ 130   2            COM0 = 0;
+ 131   2            COM1 = 1;
+ 132   2            COM2 = 0;
+ 133   2            COM3 = 0;
+ 134   2            set_time ( lcd_set.time_display );
+ 135   2      
+ 136   2            set_gap ( lcd_set.gap_display );
+ 137   2            guc_DisFreshStep = Frame1_COM2;
+ 138   2            break;
+ 139   2          case Frame1_COM2:
+ 140   2      
+ 141   2            COM0 = 0;
+ 142   2            COM1 = 0;
+ 143   2            COM2 = 1;
+ 144   2            COM3 = 0;
+ 145   2            set_time ( lcd_set.time_display );
+ 146   2            set_gap ( lcd_set.gap_display );
+ 147   2            guc_DisFreshStep = Frame1_COM3;
+ 148   2            break;
+ 149   2          case Frame1_COM3:
+ 150   2      
+ 151   2            COM0 = 0;
+ 152   2            COM1 = 0;
+ 153   2            COM2 = 0;
+ 154   2            COM3 = 1;
+ 155   2      
+ 156   2      
+ 157   2            set_time ( lcd_set.time_display );
+ 158   2      
+ 159   2            set_gap ( lcd_set.gap_display );
+ 160   2      
+ 161   2            guc_DisFreshStep = Frame0_COM0;
+ 162   2            break;
+ 163   2          default:
+ 164   2            guc_DisFreshStep = Frame0_COM0;
+ 165   2            break;
+ 166   2        }
+ 167   1      }
+ 168          
+ 169          //void LCD_Display_seg ( void )
+ 170          //{
+ 171          //
+ 172          //  switch ( guc_DisFreshStep )
+ 173          //  {
+ 174          //    case Frame0_SEG1:
+ 175          //      LCDCON &=~ 0x10;   //FRAME 0
+ 176          //
+C51 COMPILER V9.56.0.0   LCDDISPLAY                                                        08/07/2020 15:18:25 PAGE 4   
+
+ 177          //      SEG1 = 0;
+ 178          //      SEG2 = 0;
+ 179          //      SEG3 = 0;
+ 180          //      SEG4 = 0;
+ 181          //      SEG5 = 1;
+ 182          //
+ 183          //      COM0 = 0;
+ 184          //      COM1 = 0;
+ 185          //      COM2 = 1;
+ 186          //      COM3 = 0;
+ 187          //
+ 188          //
+ 189          //      guc_DisFreshStep = Frame0_SEG2;
+ 190          //      break;
+ 191          //    case Frame0_SEG2:
+ 192          //      SEG1 = 0;
+ 193          //      SEG2 = 0;
+ 194          //      SEG3 = 0;
+ 195          //      SEG4 = 1;
+ 196          //      SEG5 = 0;
+ 197          //
+ 198          //      COM0 = 0;
+ 199          //      COM1 = 1;
+ 200          //      COM2 = 1;
+ 201          //      COM3 = 1;
+ 202          //      guc_DisFreshStep = Frame0_SEG3;
+ 203          //      break;
+ 204          //    case Frame0_SEG3:
+ 205          //      SEG1 = 0;
+ 206          //      SEG2 = 0;
+ 207          //      SEG3 = 1;
+ 208          //      SEG4 = 0;
+ 209          //      SEG5 = 0;
+ 210          //
+ 211          //      COM0 = 1;
+ 212          //      COM1 = 1;
+ 213          //      COM2 = 1;
+ 214          //      COM3 = 1;
+ 215          //
+ 216          //      guc_DisFreshStep = Frame0_SEG4;
+ 217          //      break;
+ 218          //    case Frame0_SEG4:
+ 219          //      SEG1 = 0;
+ 220          //      SEG2 = 1;
+ 221          //      SEG3 = 0;
+ 222          //      SEG4 = 0;
+ 223          //      SEG5 = 0;
+ 224          //
+ 225          //
+ 226          //      COM0 = 0;
+ 227          //      COM1 = 0;
+ 228          //      COM2 = 0;
+ 229          //      COM3 = 0;
+ 230          //      guc_DisFreshStep = Frame0_SEG5;
+ 231          //      break;
+ 232          //    case Frame0_SEG5:
+ 233          //      SEG1 = 1;
+ 234          //      SEG2 = 0;
+ 235          //      SEG3 = 0;
+ 236          //      SEG4 = 0;
+ 237          //      SEG5 = 0;
+ 238          //
+C51 COMPILER V9.56.0.0   LCDDISPLAY                                                        08/07/2020 15:18:25 PAGE 5   
+
+ 239          //
+ 240          //      COM0 = 0;
+ 241          //      COM1 = 0;
+ 242          //      COM2 = 0;
+ 243          //      COM3 = 0;
+ 244          //      guc_DisFreshStep = Frame1_SEG1;
+ 245          //      break;
+ 246          //    case Frame1_SEG1:
+ 247          //      LCDCON |= 0x10;   //FRAME 1
+ 248          //      SEG1 = 0;
+ 249          //      SEG2 = 0;
+ 250          //      SEG3 = 0;
+ 251          //      SEG4 = 0;
+ 252          //      SEG5 = 1;
+ 253          //
+ 254          //
+ 255          //
+ 256          //
+ 257          //
+ 258          //      COM0 = 0;
+ 259          //      COM1 = 0;
+ 260          //      COM2 = 0;
+ 261          //      COM3 = 0;
+ 262          //
+ 263          //      guc_DisFreshStep = Frame1_SEG2;
+ 264          //      break;
+ 265          //    case Frame1_SEG2:
+ 266          //      SEG1 = 0;
+ 267          //      SEG2 = 0;
+ 268          //      SEG3 = 0;
+ 269          //      SEG4 = 1;
+ 270          //      SEG5 = 0;
+ 271          //
+ 272          //
+ 273          //      COM0 = 0;
+ 274          //      COM1 = 1;
+ 275          //      COM2 = 1;
+ 276          //      COM3 = 1;
+ 277          //
+ 278          //      guc_DisFreshStep = Frame1_SEG3;
+ 279          //      break;
+ 280          //    case Frame1_SEG3:
+ 281          //      SEG1 = 0;
+ 282          //      SEG2 = 0;
+ 283          //      SEG3 = 1;
+ 284          //      SEG4 = 0;
+ 285          //      SEG5 = 0;
+ 286          //
+ 287          //      COM0 = 1;
+ 288          //      COM1 = 1;
+ 289          //      COM2 = 1;
+ 290          //      COM3 = 1;
+ 291          //
+ 292          //
+ 293          //      guc_DisFreshStep = Frame1_SEG4;
+ 294          //      break;
+ 295          //    case Frame1_SEG4:
+ 296          //      SEG1 = 0;
+ 297          //      SEG2 = 1;
+ 298          //      SEG3 = 0;
+ 299          //      SEG4 = 0;
+ 300          //      SEG5 = 0;
+C51 COMPILER V9.56.0.0   LCDDISPLAY                                                        08/07/2020 15:18:25 PAGE 6   
+
+ 301          //
+ 302          //
+ 303          //
+ 304          //
+ 305          //      COM0 = 0;
+ 306          //      COM1 = 0;
+ 307          //      COM2 = 0;
+ 308          //      COM3 = 0;
+ 309          //
+ 310          //
+ 311          //      guc_DisFreshStep = Frame1_SEG5;
+ 312          //      break;
+ 313          //    case Frame1_SEG5:
+ 314          //      SEG1 = 1;
+ 315          //      SEG2 = 0;
+ 316          //      SEG3 = 0;
+ 317          //      SEG4 = 0;
+ 318          //      SEG5 = 0;
+ 319          //
+ 320          //
+ 321          //
+ 322          //      COM0 = 0;
+ 323          //      COM1 = 0;
+ 324          //      COM2 = 0;
+ 325          //      COM3 = 0;
+ 326          //
+ 327          //
+ 328          //
+ 329          //
+ 330          //      guc_DisFreshStep = Frame0_SEG1;
+ 331          //      break;
+ 332          //    default:
+ 333          //      guc_DisFreshStep = Frame0_SEG1;
+ 334          //      break;
+ 335          //  }
+ 336          //}
+ 337          
+ 338          
+ 339          //void set_time(void)
+ 340          //{
+ 341          //
+ 342          
+ 343          
+ 344          //}
+ 345          void set_gap ( u8 number )
+ 346          {
+ 347   1        switch ( number )
+ 348   1        {
+ 349   2          case GAP_H:
+ 350   2            if ( ( guc_DisFreshStep ==  Frame0_COM0 ) || ( guc_DisFreshStep == Frame1_COM0 ) )
+ 351   2            {
+ 352   3      
+ 353   3              SEG3 = 0;
+ 354   3              SEG4 = 0;
+ 355   3            }
+ 356   2            if ( ( guc_DisFreshStep ==  Frame0_COM1 ) || ( guc_DisFreshStep == Frame1_COM1 ) )
+ 357   2            {
+ 358   3              SEG3 = 1;
+ 359   3              SEG4 = 1;
+ 360   3            }
+ 361   2            if ( ( guc_DisFreshStep ==  Frame0_COM2 ) || ( guc_DisFreshStep == Frame1_COM2 ) )
+ 362   2            {
+C51 COMPILER V9.56.0.0   LCDDISPLAY                                                        08/07/2020 15:18:25 PAGE 7   
+
+ 363   3              SEG3 = 1;
+ 364   3              SEG4 = 1;
+ 365   3            }
+ 366   2            if ( ( guc_DisFreshStep ==  Frame0_COM3 ) || ( guc_DisFreshStep == Frame1_COM3 ) )
+ 367   2            {
+ 368   3              SEG3 = 0;
+ 369   3              SEG4 = 1;
+ 370   3            }
+ 371   2      
+ 372   2            break;
+ 373   2          case GAP_1:
+ 374   2            if ( ( guc_DisFreshStep ==  Frame0_COM0 ) || ( guc_DisFreshStep == Frame1_COM0 ) )
+ 375   2            {
+ 376   3      
+ 377   3              SEG3 = 0;
+ 378   3              SEG4 = 0;
+ 379   3            }
+ 380   2            if ( ( guc_DisFreshStep ==  Frame0_COM1 ) || ( guc_DisFreshStep == Frame1_COM1 ) )
+ 381   2            {
+ 382   3              SEG3 = 1;
+ 383   3              SEG4 = 0;
+ 384   3            }
+ 385   2            if ( ( guc_DisFreshStep ==  Frame0_COM2 ) || ( guc_DisFreshStep == Frame1_COM2 ) )
+ 386   2            {
+ 387   3              SEG3 = 1;
+ 388   3              SEG4 = 0;
+ 389   3            }
+ 390   2            if ( ( guc_DisFreshStep ==  Frame0_COM3 ) || ( guc_DisFreshStep == Frame1_COM3 ) )
+ 391   2            {
+ 392   3              SEG3 = 0;
+ 393   3              SEG4 = 0;
+ 394   3            }
+ 395   2            break;
+ 396   2      
+ 397   2          case GAP_2:
+ 398   2            if ( ( guc_DisFreshStep ==  Frame0_COM0 ) || ( guc_DisFreshStep == Frame1_COM0 ) )
+ 399   2            {
+ 400   3      
+ 401   3              SEG3 = 1;
+ 402   3              SEG4 = 0;
+ 403   3            }
+ 404   2            if ( ( guc_DisFreshStep ==  Frame0_COM1 ) || ( guc_DisFreshStep == Frame1_COM1 ) )
+ 405   2            {
+ 406   3              SEG3 = 1;
+ 407   3              SEG4 = 0;
+ 408   3            }
+ 409   2            if ( ( guc_DisFreshStep ==  Frame0_COM2 ) || ( guc_DisFreshStep == Frame1_COM2 ) )
+ 410   2            {
+ 411   3              SEG3 = 0;
+ 412   3              SEG4 = 1;
+ 413   3            }
+ 414   2            if ( ( guc_DisFreshStep ==  Frame0_COM3 ) || ( guc_DisFreshStep == Frame1_COM3 ) )
+ 415   2            {
+ 416   3              SEG3 = 1;
+ 417   3              SEG4 = 1;
+ 418   3            }
+ 419   2            break;
+ 420   2      
+ 421   2          case GAP_3:
+ 422   2            if ( ( guc_DisFreshStep ==  Frame0_COM0 ) || ( guc_DisFreshStep == Frame1_COM0 ) )
+ 423   2            {
+ 424   3      
+C51 COMPILER V9.56.0.0   LCDDISPLAY                                                        08/07/2020 15:18:25 PAGE 8   
+
+ 425   3              SEG3 = 1;
+ 426   3              SEG4 = 0;
+ 427   3            }
+ 428   2            if ( ( guc_DisFreshStep ==  Frame0_COM1 ) || ( guc_DisFreshStep == Frame1_COM1 ) )
+ 429   2            {
+ 430   3              SEG3 = 1;
+ 431   3              SEG4 = 0;
+ 432   3            }
+ 433   2            if ( ( guc_DisFreshStep ==  Frame0_COM2 ) || ( guc_DisFreshStep == Frame1_COM2 ) )
+ 434   2            {
+ 435   3              SEG3 = 1;
+ 436   3              SEG4 = 1;
+ 437   3            }
+ 438   2            if ( ( guc_DisFreshStep ==  Frame0_COM3 ) || ( guc_DisFreshStep == Frame1_COM3 ) )
+ 439   2            {
+ 440   3              SEG3 = 1;
+ 441   3              SEG4 = 0;
+ 442   3            }
+ 443   2            break;
+ 444   2          case Error:
+ 445   2            if ( ( guc_DisFreshStep ==  Frame0_COM0 ) || ( guc_DisFreshStep == Frame1_COM0 ) )
+ 446   2            {
+ 447   3      
+ 448   3              SEG3 = 1;
+ 449   3              SEG4 = 0;
+ 450   3            }
+ 451   2            if ( ( guc_DisFreshStep ==  Frame0_COM1 ) || ( guc_DisFreshStep == Frame1_COM1 ) )
+ 452   2            {
+ 453   3              SEG3 = 0;
+ 454   3              SEG4 = 1;
+ 455   3            }
+ 456   2            if ( ( guc_DisFreshStep ==  Frame0_COM2 ) || ( guc_DisFreshStep == Frame1_COM2 ) )
+ 457   2            {
+ 458   3              SEG3 = 0;
+ 459   3              SEG4 = 1;
+ 460   3            }
+ 461   2            if ( ( guc_DisFreshStep ==  Frame0_COM3 ) || ( guc_DisFreshStep == Frame1_COM3 ) )
+ 462   2            {
+ 463   3              SEG3 = 0;
+ 464   3              SEG4 = 1;
+ 465   3            }
+ 466   2            break;
+ 467   2          case Clear_lcd:
+ 468   2            SEG1 = 0;
+ 469   2            SEG2 = 0;
+ 470   2            SEG3 = 0;
+ 471   2            SEG4 = 0;
+ 472   2            SEG5 = 0;
+ 473   2            break;
+ 474   2          case all_on:
+ 475   2            SEG1 = 1;
+ 476   2            SEG2 = 1;
+ 477   2            SEG3 = 1;
+ 478   2            SEG4 = 1;
+ 479   2            SEG5 = 1;
+ 480   2            break;
+ 481   2        }
+ 482   1      
+ 483   1      }
+ 484          
+ 485          void set_time ( u8 number )
+ 486          {
+C51 COMPILER V9.56.0.0   LCDDISPLAY                                                        08/07/2020 15:18:25 PAGE 9   
+
+ 487   1        switch ( number )
+ 488   1        {
+ 489   2          case TIMER_ON:
+ 490   2            if ( ( guc_DisFreshStep ==  Frame0_COM0 ) || ( guc_DisFreshStep == Frame1_COM0 ) )
+ 491   2            {
+ 492   3              SEG1 = 0;
+ 493   3              SEG2 = 0;
+ 494   3              SEG5 = 0;
+ 495   3            }
+ 496   2            if ( ( guc_DisFreshStep ==  Frame0_COM1 ) || ( guc_DisFreshStep == Frame1_COM1 ) )
+ 497   2            {
+ 498   3              SEG1 = 1;
+ 499   3              SEG2 = 1;
+ 500   3              SEG5 = 1;
+ 501   3            }
+ 502   2            if ( ( guc_DisFreshStep ==  Frame0_COM2 ) || ( guc_DisFreshStep == Frame1_COM2 ) )
+ 503   2            {
+ 504   3              SEG1 = 0;
+ 505   3              SEG2 = 1;
+ 506   3              SEG5 = 0;
+ 507   3            }
+ 508   2            if ( ( guc_DisFreshStep ==  Frame0_COM3 ) || ( guc_DisFreshStep == Frame1_COM3 ) )
+ 509   2            {
+ 510   3              SEG1 = 1;
+ 511   3              SEG2 = 1;
+ 512   3              SEG5 = 1;
+ 513   3            }
+ 514   2      
+ 515   2            break;
+ 516   2          case TIMER_0_5H:
+ 517   2            if ( ( guc_DisFreshStep ==  Frame0_COM0 ) || ( guc_DisFreshStep == Frame1_COM0 ) )
+ 518   2            {
+ 519   3              SEG1 = 1;
+ 520   3              SEG2 = 0;
+ 521   3              SEG5 = 0;
+ 522   3            }
+ 523   2            if ( ( guc_DisFreshStep ==  Frame0_COM1 ) || ( guc_DisFreshStep == Frame1_COM1 ) )
+ 524   2            {
+ 525   3              SEG1 = 1;
+ 526   3              SEG2 = 1;
+ 527   3              SEG5 = 1;
+ 528   3            }
+ 529   2            if ( ( guc_DisFreshStep ==  Frame0_COM2 ) || ( guc_DisFreshStep == Frame1_COM2 ) )
+ 530   2            {
+ 531   3              SEG1 = 0;
+ 532   3              SEG2 = 0;
+ 533   3              SEG5 = 0;
+ 534   3            }
+ 535   2            if ( ( guc_DisFreshStep ==  Frame0_COM3 ) || ( guc_DisFreshStep == Frame1_COM3 ) )
+ 536   2            {
+ 537   3              SEG1 = 1;
+ 538   3              SEG2 = 1;
+ 539   3              SEG5 = 1;
+ 540   3            }
+ 541   2            break;
+ 542   2      
+ 543   2          case TIMER_1H:
+ 544   2            if ( ( guc_DisFreshStep ==  Frame0_COM0 ) || ( guc_DisFreshStep == Frame1_COM0 ) )
+ 545   2            {
+ 546   3              SEG1 = 0;
+ 547   3              SEG2 = 0;
+ 548   3              SEG5 = 0;
+C51 COMPILER V9.56.0.0   LCDDISPLAY                                                        08/07/2020 15:18:25 PAGE 10  
+
+ 549   3            }
+ 550   2            if ( ( guc_DisFreshStep ==  Frame0_COM1 ) || ( guc_DisFreshStep == Frame1_COM1 ) )
+ 551   2            {
+ 552   3              SEG1 = 1;
+ 553   3              SEG2 = 1;
+ 554   3              SEG5 = 1;
+ 555   3            }
+ 556   2            if ( ( guc_DisFreshStep ==  Frame0_COM2 ) || ( guc_DisFreshStep == Frame1_COM2 ) )
+ 557   2            {
+ 558   3              SEG1 = 1;
+ 559   3              SEG2 = 0;
+ 560   3              SEG5 = 0;
+ 561   3            }
+ 562   2            if ( ( guc_DisFreshStep ==  Frame0_COM3 ) || ( guc_DisFreshStep == Frame1_COM3 ) )
+ 563   2            {
+ 564   3              SEG1 = 1;
+ 565   3              SEG2 = 1;
+ 566   3              SEG5 = 1;
+ 567   3            }
+ 568   2            break;
+ 569   2      
+ 570   2          case TIMER_2H:
+ 571   2            if ( ( guc_DisFreshStep ==  Frame0_COM0 ) || ( guc_DisFreshStep == Frame1_COM0 ) )
+ 572   2            {
+ 573   3              SEG1 = 0;
+ 574   3              SEG2 = 0;
+ 575   3              SEG5 = 1;
+ 576   3            }
+ 577   2            if ( ( guc_DisFreshStep ==  Frame0_COM1 ) || ( guc_DisFreshStep == Frame1_COM1 ) )
+ 578   2            {
+ 579   3              SEG1 = 1;
+ 580   3              SEG2 = 1;
+ 581   3              SEG5 = 1;
+ 582   3            }
+ 583   2            if ( ( guc_DisFreshStep ==  Frame0_COM2 ) || ( guc_DisFreshStep == Frame1_COM2 ) )
+ 584   2            {
+ 585   3              SEG1 = 0;
+ 586   3              SEG2 = 0;
+ 587   3              SEG5 = 0;
+ 588   3            }
+ 589   2            if ( ( guc_DisFreshStep ==  Frame0_COM3 ) || ( guc_DisFreshStep == Frame1_COM3 ) )
+ 590   2            {
+ 591   3              SEG1 = 1;
+ 592   3              SEG2 = 1;
+ 593   3              SEG5 = 1;
+ 594   3            }
+ 595   2            break;
+ 596   2          case TIMER_4H:
+ 597   2            if ( ( guc_DisFreshStep ==  Frame0_COM0 ) || ( guc_DisFreshStep == Frame1_COM0 ) )
+ 598   2            {
+ 599   3              SEG1 = 0;
+ 600   3              SEG2 = 1;
+ 601   3              SEG5 = 0;
+ 602   3            }
+ 603   2            if ( ( guc_DisFreshStep ==  Frame0_COM1 ) || ( guc_DisFreshStep == Frame1_COM1 ) )
+ 604   2            {
+ 605   3              SEG1 = 1;
+ 606   3              SEG2 = 1;
+ 607   3              SEG5 = 1;
+ 608   3            }
+ 609   2            if ( ( guc_DisFreshStep ==  Frame0_COM2 ) || ( guc_DisFreshStep == Frame1_COM2 ) )
+ 610   2            {
+C51 COMPILER V9.56.0.0   LCDDISPLAY                                                        08/07/2020 15:18:25 PAGE 11  
+
+ 611   3              SEG1 = 0;
+ 612   3              SEG2 = 0;
+ 613   3              SEG5 = 0;
+ 614   3            }
+ 615   2            if ( ( guc_DisFreshStep ==  Frame0_COM3 ) || ( guc_DisFreshStep == Frame1_COM3 ) )
+ 616   2            {
+ 617   3              SEG1 = 1;
+ 618   3              SEG2 = 1;
+ 619   3              SEG5 = 1;
+ 620   3            }
+ 621   2            break;
+ 622   2          case TIMER_8H:
+ 623   2            if ( ( guc_DisFreshStep ==  Frame0_COM0 ) || ( guc_DisFreshStep == Frame1_COM0 ) )
+ 624   2            {
+ 625   3              SEG1 = 0;
+ 626   3              SEG2 = 0;
+ 627   3              SEG5 = 0;
+ 628   3            }
+ 629   2            if ( ( guc_DisFreshStep ==  Frame0_COM1 ) || ( guc_DisFreshStep == Frame1_COM1 ) )
+ 630   2            {
+ 631   3              SEG1 = 1;
+ 632   3              SEG2 = 1;
+ 633   3              SEG5 = 1;
+ 634   3            }
+ 635   2            if ( ( guc_DisFreshStep ==  Frame0_COM2 ) || ( guc_DisFreshStep == Frame1_COM2 ) )
+ 636   2            {
+ 637   3              SEG1 = 0;
+ 638   3              SEG2 = 0;
+ 639   3              SEG5 = 1;
+ 640   3            }
+ 641   2            if ( ( guc_DisFreshStep ==  Frame0_COM3 ) || ( guc_DisFreshStep == Frame1_COM3 ) )
+ 642   2            {
+ 643   3              SEG1 = 1;
+ 644   3              SEG2 = 1;
+ 645   3              SEG5 = 1;
+ 646   3            }
+ 647   2            break;
+ 648   2        }
+ 649   1      
+ 650   1      }
+ 651          
+ 652          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1065    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =      4    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

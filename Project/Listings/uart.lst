@@ -1,0 +1,95 @@
+C51 COMPILER V9.56.0.0   UART                                                              08/07/2020 15:18:24 PAGE 1   
+
+
+C51 COMPILER V9.56.0.0, COMPILATION OF MODULE UART
+OBJECT MODULE PLACED IN .\Objects\uart.obj
+COMPILER INVOKED BY: C:\program_list\keil\C51\BIN\C51.EXE ..\hardware\Uart\uart.c LARGE OPTIMIZE(8,SPEED) BROWSE INCDIR(
+                    -..\hardware\DELAY;..\hardware\ADC;..\hardware\Flash;..\hardware\Uart;..\hardware\Key;..\hardware\Pwm;..\hardware\WDT;..\
+                    -hardware\Timer;..\hardware\LCDdisplay;..\hardware\PID) DEBUG OBJECTEXTEND PRINT(.\Listings\uart.lst) TABS(2) OBJECT(.\Ob
+                    -jects\uart.obj)
+
+line level    source
+
+   1          #include "uart.h"
+   2          bit guc_Uartflag = 0;         //UART判断标志位
+   3          unsigned char guc_Uartbuf = 0;      //用于存放接收收据
+   4          //初始化串口9600
+   5          void uart_init(void)
+   6          {
+   7   1        #if _DEBUG_PRINTF_
+   8   1        P2M6 =  0xC1;   //P26设置为推挽输出   0xC1
+   9   1        P2M5 = 0x60;    //P25设置为上拉输入 0x60
+  10   1        TXD_MAP = 0x26;   //TXD映射P26
+  11   1        RXD_MAP = 0x25;   //RXD映射P25  
+  12   1        
+  13   1        //波特率计算
+  14   1        //波特率 = 1/16 * (T4时钟源频率 / 定时器4预分频比) / (65536 - 0xFF98)
+  15   1        //       = 1/16 * ((16000000 / 1) / 104)
+  16   1        //     = 9615.38(误差0.16%)
+  17   1      
+  18   1        //波特率9600
+  19   1        //反推初值 = (65536 - ((T4时钟源频率 / 定时器4预分频比) * (1 / 16)) / 波特率)
+  20   1        //       = (65536 - (16000000 * (1 / 16) / 9600))
+  21   1        //       = (65536 - 104.167)
+  22   1        //         = FF98
+  23   1        // TH4 = 0xFF;
+  24   1        // TL4 = 0x98;      //波特率9600
+  25   1        TH4 = 0xFF;//9600  4M 波特率9600
+  26   1        TL4 = 0x98; 
+  27   1        T4CON = 0x06;   //T4工作模式：UART1波特率发生器
+  28   1        SCON2 = 0x02;   //8位UART，波特率可变 方式一
+  29   1        SCON = 0x10;    //允许串行接收
+  30   1        ES1 = 1;      //使能串口中断
+  31   1        #endif
+  32   1      }
+  33          
+  34          
+  35          //串口发送一个字符
+  36          static void hal_uart_putchar(char Char)
+  37          {
+  38   1        ES1= 0;       //失能UART1中断
+  39   1        SBUF = Char;
+  40   1        while(!TI);
+  41   1        TI = 0;
+  42   1        ES1= 1;       //UART1接收使能
+  43   1      }
+  44          
+  45          //重写stdio 中的putchar函数  实现printf
+  46          char putchar(char c)
+  47          {
+  48   1        hal_uart_putchar(c);
+  49   1        return c;
+  50   1      }
+  51          
+  52          /***************************************************************************************
+C51 COMPILER V9.56.0.0   UART                                                              08/07/2020 15:18:24 PAGE 2   
+
+  53            * @说明   UART1中断服务函数
+  54            * @参数 无
+  55            * @返回值 无
+  56            * @注    无
+  57          ***************************************************************************************/
+  58          void UART1_Rpt(void) interrupt UART1_VECTOR
+  59          {
+  60   1        if(SCON & 0x01)           //判断接收中断标志位
+  61   1        {
+  62   2          guc_Uartbuf = SBUF;       //转存8位串口接收数据
+  63   2          SCON &=~ 0x10;          //失能UART1接收
+  64   2          guc_Uartflag = 1;
+  65   2          SCON &=~ 0x01;          //清除接收中断标志位
+  66   2        }                 
+  67   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     91    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =      1    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

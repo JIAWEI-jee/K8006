@@ -1,0 +1,52 @@
+C51 COMPILER V9.56.0.0   PWM                                                               08/07/2020 15:18:24 PAGE 1   
+
+
+C51 COMPILER V9.56.0.0, COMPILATION OF MODULE PWM
+OBJECT MODULE PLACED IN .\Objects\pwm.obj
+COMPILER INVOKED BY: C:\program_list\keil\C51\BIN\C51.EXE ..\hardware\Pwm\pwm.c LARGE OPTIMIZE(8,SPEED) BROWSE INCDIR(..
+                    -\hardware\DELAY;..\hardware\ADC;..\hardware\Flash;..\hardware\Uart;..\hardware\Key;..\hardware\Pwm;..\hardware\WDT;..\ha
+                    -rdware\Timer;..\hardware\LCDdisplay;..\hardware\PID) DEBUG OBJECTEXTEND PRINT(.\Listings\pwm.lst) TABS(2) OBJECT(.\Objec
+                    -ts\pwm.obj)
+
+line level    source
+
+   1          #include "pwm.h"
+   2          u8 pwm_period = 0;
+   3          
+   4          void set_pwm(u8 duty)
+   5          {
+   6   1        u32 tep = (u32)duty*pwm_period/100;
+   7   1        PWM3D = tep;
+   8   1      }
+   9          
+  10          void pwm_init(u16 hz)
+  11          {
+  12   1        P3M5 = 0xC2;                        //P35设置为推挽输出
+  13   1        PWM3_MAP = 0x35;          //PWM3映射P35口
+  14   1      
+  15   1      
+  16   1        //16MHZ
+  17   1        //周期计算  = 0xFF / (Fosc / PWM分频系数)  PWM3C  
+  18   1        //      = 0xFF /(16000000 / 128)      
+  19   1        //      = 1/255 /125000
+  20   1        //      = 490HZ
+  21   1        pwm_period = (31250/hz)-1;      //31250 = 4000000/128
+  22   1        PWM3P = pwm_period;         //PWM周期  
+  23   1      //  set_pwm(90);
+  24   1        PWM3C = 0x97;             //使能PWM3，关闭中断，允许输出，时钟128分频 111
+  25   1      }
+  26          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     59    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =      1    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

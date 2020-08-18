@@ -1,0 +1,618 @@
+C51 COMPILER V9.56.0.0   MAIN                                                              08/07/2020 15:18:23 PAGE 1   
+
+
+C51 COMPILER V9.56.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\program_list\keil\C51\BIN\C51.EXE ..\user\main.c LARGE OPTIMIZE(8,SPEED) BROWSE INCDIR(..\hardwa
+                    -re\DELAY;..\hardware\ADC;..\hardware\Flash;..\hardware\Uart;..\hardware\Key;..\hardware\Pwm;..\hardware\WDT;..\hardware\
+                    -Timer;..\hardware\LCDdisplay;..\hardware\PID) DEBUG OBJECTEXTEND PRINT(.\Listings\main.lst) TABS(2) OBJECT(.\Objects\mai
+                    -n.obj)
+
+line level    source
+
+   1          /**
+   2          * ************************************************************************************
+   3          * @Examle Version   K8104
+   4          * @Demo Version   V1.00.00
+   5          * @Date       2020.6??23
+   6          * ************************************************************************************
+   7          *
+   8          **/
+   9          
+  10          #define ALLOCATE_EXTERN
+  11          #include "HC89F3541.H"
+  12          #include "delay.h"
+  13          #include "adc.h"
+  14          #include "flash.h"
+  15          #include "key.h"
+  16          #include "uart.h"
+  17          #include "pwm.h"
+  18          #include "wdt.h"
+  19          #include "timer.h"
+  20          #include "lcddisplay.h"
+  21          #include "PID.h"
+  22          #include "math.h"
+  23          #include "stdio.h"
+  24          #include "string.h"
+  25          
+  26          #define SKU 8006
+  27          #define SOFT_VER "1.00.00"
+  28          
+  29          const u16 NTC_ADC_Table[30] =
+  30          {
+  31            //160, 148, 136, 124, 110, 102, 94, 86, 78,  70,  // 61℃ ~70℃
+  32             65,  60,  55,  50,   45,  42, 39, 36, 33,  30,  // 71℃ ~80℃
+  33             28,  26,  24,  22,   19,  18, 17, 16, 15,  13,  // 81℃ ~90℃
+  34             12,  11,  10,   9,    8,   7,  6,  5,  4,   3,   // 91℃ ~100℃
+  35          };
+  36          u16 ADC_val[30] = {0};
+  37          u16 ADC_val_PTC[30] = {0};
+  38          
+  39          
+  40          u16 adc_cnt = 0;
+  41          u8  first_heat_std = 0;
+  42          u8  error_std = 0;
+  43          //u16 PTC_adc_val = 0,NTC_adc_val = 0;
+  44          u8 adc_test_std = 1;
+  45           
+  46          
+  47          void Clock ( void );
+  48          void Set_Temp ( u16 temp );
+  49          void Controll_Heat ( u16 temp_set,u16 temp_now );
+  50          void Protect ( void );
+  51          u8 look_up_table ( const u16* a,u8 ArrayLong,u16 Data );
+  52          //u8 calcuTem(u16 RW,const u16 * tempRes_buf);
+C51 COMPILER V9.56.0.0   MAIN                                                              08/07/2020 15:18:23 PAGE 2   
+
+  53          void Sort(u16 *arr, int n);
+  54          
+  55          
+  56          
+  57          
+  58          static void key_handle ( void )
+  59          {
+  60   1        u8 key_val = 0;
+  61   1      
+  62   1        if ( error_std == 0 )
+  63   1      
+  64   1        {
+  65   2          key_val = key_scan();
+  66   2        }
+  67   1        else
+  68   1        {
+  69   2          key_val = 0;
+  70   2        }
+  71   1        if ( key_val == KEY_1_PRES )
+  72   1        {
+  73   2          KEY_printf ( " key_scan\r\n" );
+  74   2          if ( get_device_state() == ON )
+  75   2          {
+  76   3            set_device_state ( OFF );
+  77   3      
+  78   3            set_pwm ( 0 );
+  79   3          }
+  80   2          else
+  81   2          {
+  82   3            set_device_state ( ON );
+  83   3            set_time_sec();
+  84   3            if ( flash_info.gap > GAP_1 )
+  85   3            {
+  86   4              if ( flash_info.timer == TIMER_ON )
+  87   4              {
+  88   5                On_stay = 2;
+  89   5              }
+  90   4              else if ( flash_info.timer > TIMER_2H )
+  91   4              {
+  92   5                Gap_protect_std = 2;
+  93   5              }
+  94   4            }
+  95   3            first_heat_std = 1;
+  96   3      
+  97   3          }
+  98   2        }
+  99   1        else if ( get_device_state() == ON )
+ 100   1        {
+ 101   2      
+ 102   2      
+ 103   2      
+ 104   2          if ( key_val == KEY_2_PRES ) //??
+ 105   2          {
+ 106   3      
+ 107   3            KEY_printf ( " KEY_2_PRES\r\n" );
+ 108   3            if ( flash_info.gap < GAP_H )
+ 109   3            {
+ 110   4              flash_info.gap++;
+ 111   4      
+ 112   4            }
+ 113   3            else
+ 114   3            {
+C51 COMPILER V9.56.0.0   MAIN                                                              08/07/2020 15:18:23 PAGE 3   
+
+ 115   4              flash_info.gap = GAP_1;
+ 116   4            }
+ 117   3            if ( flash_info.gap > GAP_1 )
+ 118   3            {
+ 119   4              if ( flash_info.timer == TIMER_ON )
+ 120   4              {
+ 121   5                On_stay = 2;
+ 122   5              }
+ 123   4              else if ( flash_info.timer > TIMER_2H )
+ 124   4              {
+ 125   5                Gap_protect_std = 2;
+ 126   5              }
+ 127   4            }
+ 128   3      
+ 129   3            first_heat_std = 1;
+ 130   3      
+ 131   3            lcd_display_gap ( flash_info.gap );
+ 132   3            //set_time_sec();
+ 133   3            flah_save_data();
+ 134   3          }
+ 135   2          else if ( key_val == KEY_3_PRES ) //??
+ 136   2          {
+ 137   3      
+ 138   3            if ( flash_info.timer < 0x05 )
+ 139   3            {
+ 140   4              flash_info.timer++;
+ 141   4            }
+ 142   3            else
+ 143   3            {
+ 144   4              flash_info.timer = TIMER_ON;
+ 145   4            }
+ 146   3      
+ 147   3            KEY_printf ( "timer:%d \r\n", ( u16 ) flash_info.timer );
+ 148   3            lcd_display_time ( flash_info.timer );
+ 149   3            set_time_sec();
+ 150   3            flah_save_data();
+ 151   3          }
+ 152   2        }
+ 153   1      }
+ 154          
+ 155          u16 temp_calc_PTC(u16 *adc_pdata)
+ 156          {
+ 157   1        float temp1 = 0;
+ 158   1        float temp2 = 0;
+ 159   1        u16 i = 0;
+ 160   1        u16  bais_temp = 25;
+ 161   1        
+ 162   1        Sort(adc_pdata, 30);
+ 163   1          
+ 164   1      //  for(i=0;i<30;i++)
+ 165   1      //  {
+ 166   1      //    gm_printf ( " %d  ",adc_pdata[i] );
+ 167   1      //  }
+ 168   1          if(adc_pdata[29] < 10) return 0xff;
+ 169   1           gm_printf ( "adc_max = %d  \r\n",adc_pdata[29] ); 
+ 170   1          temp1 = (float)adc_pdata[29]/4095;
+ 171   1      
+ 172   1        gm_printf ( "u1 = %f  \r\n",temp1 ); 
+ 173   1          temp1 = temp1*4;
+ 174   1      //  gm_printf ( "temp1 = %f  \r\n",temp1 ); 
+ 175   1         temp1 = temp1/1.414;
+ 176   1      //  gm_printf ( "AC_real = %f  \r\n",temp1 );
+C51 COMPILER V9.56.0.0   MAIN                                                              08/07/2020 15:18:23 PAGE 4   
+
+ 177   1         temp2 = 120 - temp1;
+ 178   1      //  gm_printf ( "AC_PTC_real = %f  \r\n",temp2 );
+ 179   1        
+ 180   1          temp2 =  temp2/ temp1*0.43;
+ 181   1        gm_printf ( "R = %f  \r\n",temp2 );
+ 182   1          if (temp2 < 122.93) return 0;
+ 183   1          
+ 184   1         if(temp2 >Temperature_Value)
+ 185   1         {
+ 186   2          temp1 = temp2 - Temperature_Value;
+ 187   2           i = (u16)(temp1 / 0.57);
+ 188   2           bais_temp = bais_temp + i;
+ 189   2         }
+ 190   1         else  if(temp2 < Temperature_Value)
+ 191   1         {
+ 192   2          temp1 = Temperature_Value - temp2;
+ 193   2           i = (u16)(temp1 / 0.57);
+ 194   2           if(i > 25) i = 25;
+ 195   2           
+ 196   2           bais_temp = bais_temp - i;
+ 197   2         }
+ 198   1         gm_printf ( "temper = %d  \r\n", bais_temp );
+ 199   1         
+ 200   1        return bais_temp;
+ 201   1      }
+ 202          
+ 203          u16 temp_calc ( u16 *adc_NTC_pdata )
+ 204          {
+ 205   1        float u1 = 0;
+ 206   1        float u3 = 0;
+ 207   1        int i = 0;
+ 208   1        u32 adc_max =0;
+ 209   1        
+ 210   1      //  if ( PTC_VAL < 50 )
+ 211   1      //  {
+ 212   1      //    return 0xff;
+ 213   1      //  }
+ 214   1      //  gm_printf ( " adc_pdata:\r\n");
+ 215   1      //  for(i=0;i<30;i++)
+ 216   1      //  {
+ 217   1      //    gm_printf ( " %d  ",adc_pdata[i] );
+ 218   1      //  }
+ 219   1      //  gm_printf ( "\r\n");
+ 220   1        Sort(adc_NTC_pdata, 30);
+ 221   1      //  gm_printf ( "sort:\r\n");
+ 222   1      //  for(i=0;i<30;i++)
+ 223   1      //  {
+ 224   1      //    gm_printf ( " %d  ",adc_pdata[i] );
+ 225   1      //  }
+ 226   1      //    gm_printf ( "\r\n");  
+ 227   1      //  gm_printf ( "\r\n");
+ 228   1        
+ 229   1          //u1 = PTC_adc_val /1000;
+ 230   1          
+ 231   1       //   NTC_adc_val = sqrt ( NTC_adc_val/50 );
+ 232   1      
+ 233   1        
+ 234   1         u1 = (float)adc_NTC_pdata[29]/4095;
+ 235   1      //  gm_printf ( "u1 = %f  \r\n",u1 ); 
+ 236   1         u1 = u1*4;
+ 237   1      //  gm_printf ( "u1 = %f  \r\n",u1 ); 
+ 238   1         u1 = u1/1.414;
+C51 COMPILER V9.56.0.0   MAIN                                                              08/07/2020 15:18:23 PAGE 5   
+
+ 239   1      //  gm_printf ( "u1 = %f  \r\n",u1 ); 
+ 240   1        
+ 241   1        u3 = 120.00 - u1;
+ 242   1      //  gm_printf ( "u3 = %f  \r\n",u3 ); 
+ 243   1      
+ 244   1         u3 = u3/u1*510;
+ 245   1      //  gm_printf ( "adc_max = %f  \r\n",u3 ); 
+ 246   1         adc_max = u3/1000;
+ 247   1        // gm_printf ( "adc_max = %d  \r\n",(u16)adc_max ); 
+ 248   1        i = look_up_table ( NTC_ADC_Table,30 ,(u16)adc_max );
+ 249   1        //gm_printf ( "temp = %d  \r\n",i ); 
+ 250   1        return ( i );
+ 251   1      }
+ 252          
+ 253          
+ 254          
+ 255          
+ 256          /**
+ 257            * @brief  temperature_handle
+ 258          
+ 259            * @param  temp_set
+ 260            * @param  temp_now
+ 261            * @retval None
+ 262            */
+ 263          void temperature_handle ( void )
+ 264          {
+ 265   1        u16 temp = 0;
+ 266   1        static u16 adc_val1 = 0,adc_val3 = 0;
+ 267   1        static u16 adc_test = 0;
+ 268   1        static u8 adc_times = 0;
+ 269   1        adc_cnt++;
+ 270   1        if ( adc_test_std == 1 )
+ 271   1        {
+ 272   2      
+ 273   2          if ( ++adc_test >= 50 )
+ 274   2          {
+ 275   3      
+ 276   3            ADC_EN = 1;
+ 277   3            
+ 278   3            adc_test = 0;
+ 279   3            get_ADC_val ( &adc_val1, &adc_val3 );
+ 280   3            ADC_val[adc_times] = adc_val3; 
+ 281   3            ADC_val_PTC[adc_times] = adc_val1;
+ 282   3            adc_times++;
+ 283   3        //    PTC_adc_val = PTC_adc_val + adc_val1;
+ 284   3            
+ 285   3          //  NTC_adc_val = NTC_adc_val + ( adc_val3*adc_val1 );
+ 286   3            ADC_EN = 0;
+ 287   3          }
+ 288   2          if ( adc_times > 30 )
+ 289   2          {
+ 290   3            adc_times = 0;
+ 291   3            adc_test_std = 2;
+ 292   3          }
+ 293   2        }
+ 294   1        if ( adc_cnt >= 50000 )
+ 295   1        {
+ 296   2          adc_cnt = 0;
+ 297   2      
+ 298   2          if (adc_test_std == 2)
+ 299   2          { 
+ 300   3            gm_printf ( " adc_test_std = 2\r\n");
+C51 COMPILER V9.56.0.0   MAIN                                                              08/07/2020 15:18:23 PAGE 6   
+
+ 301   3            gm_printf ( "\r\n");
+ 302   3            temp_calc ( ADC_val );
+ 303   3          temp = temp_calc_PTC( ADC_val_PTC );
+ 304   3        //  KEY_printf ( "PTC = %d  NTC =%d\r\n",PTC_adc_val,NTC_adc_val );  //pjw set
+ 305   3          
+ 306   3          adc_test_std = 1;
+ 307   3          //  KEY_printf ( "temp val:%d \r\n",temp );
+ 308   3          }
+ 309   2          if ( 1 )  //adc_val1 >50
+ 310   2          {
+ 311   3            if ( get_device_state() == OFF )
+ 312   3            {
+ 313   4              if ( first_heat_std == 1 )
+ 314   4              {
+ 315   5                first_heat_std = 0;
+ 316   5                if ( temp > 50 )
+ 317   5                {
+ 318   6                  Heat_start_std = 1;
+ 319   6                  Open_Heat_Value = corrected_value_GAP_4_temp  ;
+ 320   6                }
+ 321   5                else
+ 322   5                {
+ 323   6                  Heat_start_std = 1;
+ 324   6                  Open_Heat_Value = corrected_value_warm_temp ;
+ 325   6                }
+ 326   5              }
+ 327   4      
+ 328   4              lcd_display_time ( flash_info.timer );
+ 329   4              lcd_display_gap ( flash_info.gap );
+ 330   4              Set_Temp ( temp );
+ 331   4      //        set_pwm ( 10 );
+ 332   4            }
+ 333   3            else
+ 334   3            {
+ 335   4              set_pwm ( 0 );
+ 336   4              lcd_clear_all();
+ 337   4            }
+ 338   3            error_std = 0;
+ 339   3          }
+ 340   2          else
+ 341   2          {
+ 342   3            set_pwm ( 0 );
+ 343   3      
+ 344   3            lcd_error (  );
+ 345   3            error_std = 1;
+ 346   3          }
+ 347   2      
+ 348   2      //    ADC_EN = 1;  //close ADC
+ 349   2        }
+ 350   1      
+ 351   1      
+ 352   1      }
+ 353          
+ 354          
+ 355          
+ 356          
+ 357          
+ 358          
+ 359          
+ 360          
+ 361          void main()
+ 362          {
+C51 COMPILER V9.56.0.0   MAIN                                                              08/07/2020 15:18:23 PAGE 7   
+
+ 363   1        Clock();
+ 364   1        uart_init();
+ 365   1        adc_init();
+ 366   1        EA = 1;
+ 367   1        time0_init ();
+ 368   1        key_init();
+ 369   1        flash_init();
+ 370   1        pwm_init ( 200 );
+ 371   1        wdt_init ( 2 );
+ 372   1        LCD_Init();
+ 373   1        lcd_display_On();
+ 374   1        delay_ms ( 1200 );
+ 375   1        lcd_clear_all ();
+ 376   1        gm_printf ( "\r\n==================================\r\n" );
+ 377   1        gm_printf ( "sku:K%d \r\n", ( u16 ) SKU );
+ 378   1        gm_printf ( "soft version:%s \r\n",SOFT_VER );
+ 379   1        gm_printf ( "gap %d \r\n", ( u16 ) flash_info.gap );
+ 380   1        gm_printf ( "timer %d \r\n", ( u16 ) flash_info.timer );
+ 381   1        gm_printf ( "==================================\r\n" );
+ 382   1      
+ 383   1        while ( 1 )
+ 384   1        {
+ 385   2      
+ 386   2      
+ 387   2          temperature_handle();
+ 388   2          key_handle ();
+ 389   2          Protect ();
+ 390   2          clear_wdt();
+ 391   2      
+ 392   2        }
+ 393   1      }
+ 394          
+ 395          
+ 396          
+ 397          void Clock ( void )
+ 398          {
+ 399   1        /************************************??????????****************************************/
+ 400   1        CLKSWR = 0x51;            //Fosc=16MHz
+ 401   1        CLKDIV = 0x01;            //Fosc/1 = Fcpu=16MHz
+ 402   1      }
+ 403          
+ 404          
+ 405          /**
+ 406            * @brief  controll_PWM on/off heat
+ 407            * @param  temp_set
+ 408            * @param  temp_now
+ 409            * @retval None
+ 410            */
+ 411          
+ 412          void Controll_Heat ( u16 temp_set,u16 temp_now )
+ 413          {
+ 414   1      
+ 415   1        if ( temp_now >=  temp_set   )
+ 416   1        {
+ 417   2          //KEY_printf ( "close_heat \r\n");
+ 418   2          set_pwm ( 0 );
+ 419   2        }
+ 420   1        else if ( temp_now <= ( temp_set - Open_Heat_Value ) )
+ 421   1        {
+ 422   2          //KEY_printf ( "open_heat \r\n");
+ 423   2          set_pwm ( 10 );
+ 424   2        }
+C51 COMPILER V9.56.0.0   MAIN                                                              08/07/2020 15:18:23 PAGE 8   
+
+ 425   1      }
+ 426          /**
+ 427            * @brief  set temperature from now_temper and GAP
+ 428            * @param  now_temper
+ 429            * @param  null
+ 430            * @retval None
+ 431            */
+ 432          
+ 433          void Set_Temp ( u16 temp )
+ 434          {
+ 435   1      
+ 436   1      
+ 437   1        switch ( flash_info.gap )
+ 438   1        {
+ 439   2          case GAP_WARM:
+ 440   2            Controll_Heat ( GAP_WARM_temp,temp );
+ 441   2            break;
+ 442   2          case GAP_1:
+ 443   2            Controll_Heat ( GAP_1_temp,temp );
+ 444   2            break;
+ 445   2          case GAP_2:
+ 446   2            Controll_Heat ( GAP_2_temp,temp );
+ 447   2            break;
+ 448   2          case GAP_3:
+ 449   2            Controll_Heat ( GAP_3_temp,temp );
+ 450   2            break;
+ 451   2          case GAP_H:
+ 452   2            Controll_Heat ( GAP_4_temp,temp );
+ 453   2            break;
+ 454   2          case GAP_5:
+ 455   2            Controll_Heat ( GAP_5_temp,temp );
+ 456   2            break;
+ 457   2          case GAP_6:
+ 458   2            Controll_Heat ( GAP_6_temp,temp );
+ 459   2            break;
+ 460   2          case GAP_7:
+ 461   2            Controll_Heat ( GAP_7_temp,temp );
+ 462   2            break;
+ 463   2          case GAP_8:
+ 464   2            Controll_Heat ( GAP_8_temp,temp );
+ 465   2            break;
+ 466   2          case GAP_9:
+ 467   2            Controll_Heat ( GAP_9_temp,temp );
+ 468   2            break;
+ 469   2      
+ 470   2        }
+ 471   1      }
+ 472          
+ 473          /**
+ 474            * @brief  protect -> Over  2H exchange GAP1
+ 475            * @param  null
+ 476            * @param  null
+ 477            * @retval None
+ 478            */
+ 479          void Protect ( void )
+ 480          {
+ 481   1        if ( over_rang_time_std == 1 )
+ 482   1        {
+ 483   2          if ( flash_info.gap > GAP_1 )
+ 484   2          {
+ 485   3            flash_info.gap = GAP_1;
+ 486   3      
+C51 COMPILER V9.56.0.0   MAIN                                                              08/07/2020 15:18:23 PAGE 9   
+
+ 487   3            flah_save_data();
+ 488   3            over_rang_time_std = 0;
+ 489   3          }
+ 490   2        }
+ 491   1      }
+ 492          
+ 493          u8 look_up_table ( const u16* a,u8 ArrayLong,u16 Data )
+ 494          {
+ 495   1        u16 begin,end,middle ;
+ 496   1        u8 i ;
+ 497   1        begin = 0 ;
+ 498   1        end = ArrayLong-1 ;
+ 499   1        i = 0  ;
+ 500   1        if ( Data >= a[begin] )
+ 501   1        {
+ 502   2      
+ 503   2          return begin ;
+ 504   2        }
+ 505   1        else if ( Data <= a[end] )
+ 506   1        {
+ 507   2          return 100 ;
+ 508   2        }
+ 509   1        while ( begin < end )
+ 510   1        {
+ 511   2          middle = ( begin+end ) /2 ;
+ 512   2          if ( Data == a[middle] )
+ 513   2          {
+ 514   3            break ;
+ 515   3          }
+ 516   2          if ( Data < a[middle] && Data > a[middle+1] )
+ 517   2          {
+ 518   3            break ;
+ 519   3          }
+ 520   2          if ( Data > a[middle] )
+ 521   2          {
+ 522   3            end = middle ;
+ 523   3          }
+ 524   2          else
+ 525   2          {
+ 526   3            begin = middle ;
+ 527   3          }
+ 528   2          if ( i++ > ArrayLong )
+ 529   2          {
+ 530   3            break ;
+ 531   3          }
+ 532   2        }
+ 533   1        if ( begin > end )
+ 534   1        {
+ 535   2          return 0 ;
+ 536   2        }
+ 537   1        return middle+70 ;
+ 538   1      }
+ 539          
+ 540          //u8 calcuTem(u16 RW,const u16 * tempRes_buf)
+ 541          //{
+ 542          //  u8 tempValue= 108;
+ 543          //  u8 i = 0;
+ 544          //  if ((RW < 4000)&&(RW > 6))
+ 545          //  {
+ 546          //    for ( i = 0 ; i < 181 ; i++)
+ 547          //    {
+ 548          //      if (RW >= tempRes_buf[i])
+C51 COMPILER V9.56.0.0   MAIN                                                              08/07/2020 15:18:23 PAGE 10  
+
+ 549          //      {
+ 550          //        tempValue = i+20;
+ 551          //        break;
+ 552          //      }
+ 553          //    }
+ 554          //  }
+ 555          //
+ 556          //  return tempValue;
+ 557          //}
+ 558          void Sort(u16 *arr, int n)
+ 559          {
+ 560   1          int m, i, j;
+ 561   1          for (i = 0; i < n - 1; i++)
+ 562   1              for (j = 0; j < n - 1 - i; j++)
+ 563   1                  if (arr[j] > arr[j + 1])
+ 564   1                  {
+ 565   2                      m = arr[j];
+ 566   2                      arr[j] = arr[j + 1];
+ 567   2                      arr[j + 1] = m;
+ 568   2                  }
+ 569   1      }
+ 570          
+ 571          
+ 572          
+ 573          
+*** WARNING C294 IN LINE 342 OF ..\user\main.c: unreachable code
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   2553    ----
+   CONSTANT SIZE    =    253    ----
+   XDATA SIZE       =    192      56
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  1 WARNING(S),  0 ERROR(S)

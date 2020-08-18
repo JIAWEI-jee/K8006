@@ -1,0 +1,53 @@
+C51 COMPILER V9.56.0.0   DELAY                                                             08/07/2020 15:18:24 PAGE 1   
+
+
+C51 COMPILER V9.56.0.0, COMPILATION OF MODULE DELAY
+OBJECT MODULE PLACED IN .\Objects\delay.obj
+COMPILER INVOKED BY: C:\program_list\keil\C51\BIN\C51.EXE ..\hardware\DELAY\delay.c LARGE OPTIMIZE(8,SPEED) BROWSE INCDI
+                    -R(..\hardware\DELAY;..\hardware\ADC;..\hardware\Flash;..\hardware\Uart;..\hardware\Key;..\hardware\Pwm;..\hardware\WDT;.
+                    -.\hardware\Timer;..\hardware\LCDdisplay;..\hardware\PID) DEBUG OBJECTEXTEND PRINT(.\Listings\delay.lst) TABS(2) OBJECT(.
+                    -\Objects\delay.obj)
+
+line level    source
+
+   1          #include "delay.h"
+   2          #include "intrins.h"//nop
+   3          
+   4          void delay_us(u16 us)//16MHz
+   5          {
+   6   1        while(--us)
+   7   1        {
+   8   2          _nop_();_nop_();
+   9   2        }
+  10   1      }
+  11          
+  12          void delay_ms(u16 ms)    
+  13          {  
+  14   1          u16 i;  
+  15   1          do{  
+  16   2              i=(MAIN_Fosc/9600)*2;  
+  17   2              while(--i);     //96T per loop  
+  18   2          }while(--ms);       //--ms  ms=ms-1  
+  19   1      } 
+  20          
+  21          //void lcd_delay_us(u16 time)
+  22          //{
+  23          //  delay_us(time);
+  24          //}
+  25          
+  26          
+  27          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     37    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

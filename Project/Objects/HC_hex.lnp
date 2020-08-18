@@ -1,0 +1,13 @@
+".\Objects\STARTUP.obj",
+".\Objects\main.obj",
+".\Objects\delay.obj",
+".\Objects\adc.obj",
+".\Objects\flash.obj",
+".\Objects\uart.obj",
+".\Objects\key.obj",
+".\Objects\pwm.obj",
+".\Objects\wdt.obj",
+".\Objects\timer.obj",
+".\Objects\lcddisplay.obj" 
+TO ".\Objects\HC_hex" 
+PRINT(".\Listings\HC_hex.m51") RAMSIZE(256) 

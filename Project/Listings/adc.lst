@@ -1,0 +1,104 @@
+C51 COMPILER V9.56.0.0   ADC                                                               08/07/2020 15:18:24 PAGE 1   
+
+
+C51 COMPILER V9.56.0.0, COMPILATION OF MODULE ADC
+OBJECT MODULE PLACED IN .\Objects\adc.obj
+COMPILER INVOKED BY: C:\program_list\keil\C51\BIN\C51.EXE ..\hardware\ADC\adc.c LARGE OPTIMIZE(8,SPEED) BROWSE INCDIR(..
+                    -\hardware\DELAY;..\hardware\ADC;..\hardware\Flash;..\hardware\Uart;..\hardware\Key;..\hardware\Pwm;..\hardware\WDT;..\ha
+                    -rdware\Timer;..\hardware\LCDdisplay;..\hardware\PID) DEBUG OBJECTEXTEND PRINT(.\Listings\adc.lst) TABS(2) OBJECT(.\Objec
+                    -ts\adc.obj)
+
+line level    source
+
+   1          #include "adc.h"
+   2          #include "delay.h"
+   3          
+   4          
+   5          void adc_init ( void )
+   6          {
+   7   1        P0M3 = 0x01;    //P03设置为模拟输入
+   8   1        P0M2 = 0x01;    //P02设置为模拟输入
+   9   1        P0M7 = 0x01;        //P07设置为模拟输入
+  10   1          P2M2 = 0xC1;        //P26设置为推挽输出/端口输出能力10mA
+  11   1        ADCC0 = 0x81;   //打开ADC转换电源     
+  12   1        //00 VDD
+  13   1      //                      01 内部4V
+  14   1      //                      10 内部3V
+  15   1      //                      11 内部2V
+  16   1      //1、 内部参考电压选择为 2V 时， VDD 电压须高于 2.7V；
+  17   1      //    内部参考电压选择为 3V 时， VDD 电压须高于 3.5V；
+  18   1      //    内部参考电压选择为 4V 时， VDD 电压须高于4.5V。
+  19   1      //2、 系统进入掉电模式前，建议将 ADC 参考电压选择非 VDD，可以进一步降低系统功耗。
+  20   1        delay_us ( 80 );            //延时20us，确保ADC系统稳定
+  21   1      
+  22   1      //  ADCC1 = 0x08;           //选择ADC通道8
+  23   1        ADCC2 = 0x41;         //转换结果12位数据，数据右对齐，ADC时钟4分频 4M/4 = 1MHz
+  24   1      }
+  25          
+  26          u16 get_adc_val_P02 ( void )
+  27          {
+  28   1        u16 adc_val = 0;
+  29   1        ADCC1 = 0x02;           //选择ADC通道7
+  30   1        ADCC0 |= 0x40;          //启动ADC转换
+  31   1        while ( ! ( ADCC0&0x20 ) );     //等待ADC转换结束
+  32   1        ADCC0 &=~ 0x20;         //清除标志位
+  33   1        adc_val = ADCR;         //获取ADC的值
+  34   1      //  ADCR = 0;
+  35   1        return adc_val;
+  36   1      }
+  37          
+  38          
+  39          
+  40          u16 get_adc_val_P07 ( void )
+  41          {
+  42   1        u16 adc_val = 0;
+  43   1        ADCC1 = 0x07;           //选择ADC通道7
+  44   1        ADCC0 |= 0x40;          //启动ADC转换
+  45   1        while ( ! ( ADCC0&0x20 ) );     //等待ADC转换结束
+  46   1        ADCC0 &=~ 0x20;         //清除标志位
+  47   1        adc_val = ADCR;         //获取ADC的值
+  48   1      //  ADCR = 0;
+  49   1        return adc_val;
+  50   1      }
+  51          
+  52          u16 get_adc_val_P03 ( void )
+C51 COMPILER V9.56.0.0   ADC                                                               08/07/2020 15:18:24 PAGE 2   
+
+  53          {
+  54   1        u16 adc_val = 0;
+  55   1        ADCC1 = 0x03;           //选择ADC通道3
+  56   1        ADCC0 |= 0x40;          //启动ADC转换
+  57   1        while ( ! ( ADCC0&0x20 ) );     //等待ADC转换结束
+  58   1        ADCC0 &=~ 0x20;         //清除标志位
+  59   1        adc_val = ADCR;         //获取ADC的值
+  60   1      //  ADCR = 0;
+  61   1        return adc_val;
+  62   1      }
+  63          
+  64          
+  65          void get_ADC_val ( u16* PTC_voltage_ch7 ,u16* RTD2_voltage_ch3 )
+  66          {
+  67   1        u32 temp = 0;
+  68   1          temp = get_adc_val_P07();
+  69   1        *PTC_voltage_ch7 = temp;
+  70   1        delay_us ( 20 );
+  71   1        temp = 0;
+  72   1        temp = get_adc_val_P03();
+  73   1        *RTD2_voltage_ch3 = temp;
+  74   1      }
+  75          
+  76          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    153    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----       6
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

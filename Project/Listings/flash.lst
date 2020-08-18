@@ -1,0 +1,193 @@
+C51 COMPILER V9.56.0.0   FLASH                                                             08/07/2020 15:18:24 PAGE 1   
+
+
+C51 COMPILER V9.56.0.0, COMPILATION OF MODULE FLASH
+OBJECT MODULE PLACED IN .\Objects\flash.obj
+COMPILER INVOKED BY: C:\program_list\keil\C51\BIN\C51.EXE ..\hardware\Flash\flash.c LARGE OPTIMIZE(8,SPEED) BROWSE INCDI
+                    -R(..\hardware\DELAY;..\hardware\ADC;..\hardware\Flash;..\hardware\Uart;..\hardware\Key;..\hardware\Pwm;..\hardware\WDT;.
+                    -.\hardware\Timer;..\hardware\LCDdisplay;..\hardware\PID) DEBUG OBJECTEXTEND PRINT(.\Listings\flash.lst) TABS(2) OBJECT(.
+                    -\Objects\flash.obj)
+
+line level    source
+
+   1          #include "flash.h"
+   2          #include "uart.h"
+   3          //#include "timer.h"
+   4          
+   5          flash_info_t flash_info;
+   6          u8 flash_check[4] = {0x20,0x20,0x05,0x01};
+   7          u8 device_state = OFF;
+   8          
+   9          u8 get_device_state(void)
+  10          {
+  11   1        return device_state;
+  12   1      }
+  13          
+  14          void set_device_state(u8 state)
+  15          {
+  16   1        device_state = state;
+  17   1      }
+  18          
+  19          
+  20          /**
+  21            * @说明   扇区擦除，约消耗5ms的时间
+  22            * @参数   fui_Address ：被擦除的扇区内的任意一个地址
+  23            * @返回值 无
+  24            * @注   只要操作扇区里面的任意一个地址，就可以擦除此扇区
+  25            */
+  26          #pragma disable           //确保擦除时不会进中断导致擦除失败
+  27          void Flash_EraseBlock(u16 addr)
+  28          {
+  29   1        IAP_CMD = 0xF00F;       //Flash解锁
+  30   1        IAP_ADDR = addr;        //写入擦除地址
+  31   1        IAP_CMD = 0xD22D;       //选择操作方式， 扇区擦除
+  32   1        IAP_CMD = 0xE11E;         //触发后IAP_ADDRL&IAP_ADDRH指向0xFF，同时自动锁定
+  33   1      }
+  34          
+  35          /**
+  36            * @说明   写入一个字节数据到Flash里面
+  37            * @参数   fui_Address ：FLASH地址
+  38            * @参数 fucp_SaveData：写入的数据
+  39            * @返回值 无
+  40            * @注   写之前必须先对操作的扇区进行擦除
+  41            */
+  42          #pragma disable           //确保写入时不会进中断导致写入失败
+  43          void FLASH_WriteData(u8 fuc_SaveData, u16 addr)
+  44          {
+  45   1        IAP_DATA = fuc_SaveData;
+  46   1        IAP_CMD=0xF00F;         //Flash解锁
+  47   1        IAP_ADDR = addr;
+  48   1        IAP_CMD=0xB44B;         //字节编程
+  49   1        IAP_CMD=0xE11E;         //触发一次操作
+  50   1      }
+  51          
+  52          /**
+C51 COMPILER V9.56.0.0   FLASH                                                             08/07/2020 15:18:24 PAGE 2   
+
+  53            * @说明   写入任意长度的数据到FLASH里面
+  54            * @参数   fui_Address ：FLASH起始地址
+  55            * @参数 len ： 写入数据长度
+  56            *     取值范围：0x00-0xFF
+  57            * @参数 *fucp_SaveArr：写入的数据存放区域的首地址
+  58            * @返回值 无
+  59            * @注   写之前必须先对操作的扇区进行擦除
+  60            */
+  61          #pragma disable           //确保写入时不会进中断导致写入失败
+  62          void Flash_WriteArr(u16 fui_Address,u8 len,u8 *fucp_SaveArr)
+  63          {
+  64   1        u8 i = 0;
+  65   1      
+  66   1        EA = 0;//关闭中断
+  67   1        for(i = 0; i < len; i++)
+  68   1        {
+  69   2          FLASH_WriteData(*(fucp_SaveArr++), fui_Address++); 
+  70   2        }
+  71   1        EA = 1;//开启中断
+  72   1      }
+  73          
+  74          u8 flash_read_addr(u16 address)
+  75          {
+  76   1        u8 val = 0;
+  77   1        val = *((unsigned char code *)(address));
+  78   1        return val;
+  79   1      }
+  80          
+  81          
+  82          /**
+  83            * @说明   从FLASH里面读取任意长度的数据
+  84            * @参数   fui_Address ：FLASH起始地址
+  85            * @参数 fuc_Length ：读取数据长度
+  86            *     取值范围：0x00-0xFF
+  87            * @参数 *fucp_SaveArr：读取数据存放的区域首地址
+  88            * @返回值 无
+  89            * @注   无
+  90            */
+  91          void Flash_ReadArr(u16 fui_Address,u8 fuc_Length,u8 *fucp_SaveArr)
+  92          {
+  93   1        while(fuc_Length--)
+  94   1        *(fucp_SaveArr++)=*((unsigned char code *)(fui_Address++));//读取数据
+  95   1      }
+  96          
+  97          static u8 check_flash(void)
+  98          {
+  99   1        u8 i = 0,cnt = 0;
+ 100   1      
+ 101   1        for (i = 0; i < 4; ++i)
+ 102   1        {
+ 103   2          if(flash_read_addr(FLASH_CHECK_ADDRESS+i) == flash_check[i])
+ 104   2          {
+ 105   3            cnt ++;
+ 106   3          }else
+ 107   2            return 0;
+ 108   2        }
+ 109   1        if(cnt >= 4)
+ 110   1          return 1;
+ 111   1        return 0;
+ 112   1      }
+ 113          
+ 114          
+C51 COMPILER V9.56.0.0   FLASH                                                             08/07/2020 15:18:24 PAGE 3   
+
+ 115          void flash_init(void)
+ 116          {
+ 117   1          u8 init_flag = 0;
+ 118   1      
+ 119   1          // FREQ_CLK = 0x10;          //指明当前系统时钟为16MHz
+ 120   1          FREQ_CLK = 0x04;//4MHZ
+ 121   1          //读出数据
+ 122   1          if(check_flash() == 0)//第一次数据初始化
+ 123   1          {
+ 124   2              init_flag = 1;
+ 125   2          }
+ 126   1          else
+ 127   1          {
+ 128   2              gm_printf("\r\n========================================\r\n");
+ 129   2              Flash_ReadArr(FLASH_DATA_ADDRESS,sizeof(flash_info),(u8 *)(&flash_info));
+ 130   2              gm_printf("power on flash gap:%d  timer:%d \r\n",(u16)flash_info.gap,(u16)flash_info.timer);
+ 131   2              gm_printf("========================================\r\n");
+ 132   2              if(flash_info.gap > GAP_9 || flash_info.timer > TIMER_8H)//读出数据不合法
+ 133   2                  init_flag = 1;
+ 134   2          }
+ 135   1          if(init_flag == 1)
+ 136   1          {
+ 137   2              gm_printf("=============first init data=========== \r\n");
+ 138   2              flash_info.gap    = GAP_1;    //default 1 gap 
+ 139   2              flash_info.timer  = TIMER_0_5H; //default 0.5H
+ 140   2              Flash_EraseBlock(FLASH_CHECK_ADDRESS);//擦除地址 FLASH_CHECK_ADDRESS 所在扇区
+ 141   2              Flash_WriteArr(FLASH_CHECK_ADDRESS,4,flash_check);
+ 142   2              Flash_WriteArr(FLASH_DATA_ADDRESS,sizeof(flash_info),(u8 *)(&flash_info));
+ 143   2              Flash_ReadArr(FLASH_CHECK_ADDRESS,4,flash_check);
+ 144   2              gm_printf("0x%04X  0x%04X  0x%04X  0x%04X \r\n",(u16)flash_check[0],(u16)flash_check[1],(u16)flash
+             -_check[2],(u16)flash_check[3]);
+ 145   2              gm_printf("========================================\r\n");
+ 146   2          }
+ 147   1          gm_printf("flash gap:%d  timer:%d \r\n",(u16)flash_info.gap,(u16)flash_info.timer);
+ 148   1      }
+ 149          
+ 150          //flash 需要擦除之后才能写入 这样写入的值才是正确的
+ 151          void flah_save_data(void)
+ 152          {
+ 153   1        // gm_printf("========================================\r\n");
+ 154   1        Flash_EraseBlock(FLASH_DATA_ADDRESS);
+ 155   1        Flash_WriteArr(FLASH_CHECK_ADDRESS,4,flash_check);
+ 156   1        Flash_WriteArr(FLASH_DATA_ADDRESS,sizeof(flash_info),(u8 *)(&flash_info));
+ 157   1        Flash_ReadArr(FLASH_DATA_ADDRESS,sizeof(flash_info),(u8 *)(&flash_info));
+ 158   1        // gm_printf("read flash gap:%d  timer:%d \r\n",(u16)flash_info.gap,(u16)flash_info.timer);
+ 159   1        // gm_printf("========================================\r\n");
+ 160   1      }
+ 161          
+ 162          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    634    ----
+   CONSTANT SIZE    =    226    ----
+   XDATA SIZE       =      7      13
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

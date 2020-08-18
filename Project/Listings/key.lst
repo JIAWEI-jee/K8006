@@ -1,0 +1,142 @@
+C51 COMPILER V9.56.0.0   KEY                                                               08/07/2020 15:18:24 PAGE 1   
+
+
+C51 COMPILER V9.56.0.0, COMPILATION OF MODULE KEY
+OBJECT MODULE PLACED IN .\Objects\key.obj
+COMPILER INVOKED BY: C:\program_list\keil\C51\BIN\C51.EXE ..\hardware\Key\key.c LARGE OPTIMIZE(8,SPEED) BROWSE INCDIR(..
+                    -\hardware\DELAY;..\hardware\ADC;..\hardware\Flash;..\hardware\Uart;..\hardware\Key;..\hardware\Pwm;..\hardware\WDT;..\ha
+                    -rdware\Timer;..\hardware\LCDdisplay;..\hardware\PID) DEBUG OBJECTEXTEND PRINT(.\Listings\key.lst) TABS(2) OBJECT(.\Objec
+                    -ts\key.obj)
+
+line level    source
+
+   1          #include "key.h"
+   2          #include "delay.h"
+   3          #include "uart.h"
+   4          #define KEY_PRESS_TIME 700
+   5          
+   6          void key_init(void)
+   7          {
+   8   1        P2M7 = 0x60;                        //P27设置为非施密特数字带上拉输入
+   9   1        P0M0 = 0x60;                        //P00设置为非施密特数字带上拉输入
+  10   1        P0M1 = 0x60;                        //P01设置为非施密特数字带上拉输入
+  11   1        
+  12   1      }
+  13          
+  14          
+  15          static unsigned char key_driver(void) 
+  16          {     
+  17   1          static unsigned char key_state = 0;         
+  18   1          static unsigned int key_time = 0;           
+  19   1          unsigned char key_press, key_return; 
+  20   1       
+  21   1          key_return = N_KEY;                         
+  22   1       
+  23   1           key_press = KEY_1; 
+  24   1          switch (key_state)     
+  25   1          {       
+  26   2              case KEY_STATE_0:                       
+  27   2                  if (key_press == 0)                     
+  28   2                  {
+  29   3                      key_time = 0;                   
+  30   3                      key_state = KEY_STATE_1;       
+  31   3                  }        
+  32   2                  break;
+  33   2       
+  34   2              case KEY_STATE_1:                       
+  35   2                  if (key_press == 0)                     
+  36   2                  {
+  37   3                      key_time++;                     
+  38   3                      if(key_time>=SINGLE_KEY_TIME)   
+  39   3                      {
+  40   4                          key_state = KEY_STATE_2;    
+  41   4                      }
+  42   3              delay_ms(10);
+  43   3                  }         
+  44   2                  else key_state = KEY_STATE_0;       
+  45   2                  break; 
+  46   2       
+  47   2              case KEY_STATE_2:                       
+  48   2                  if(key_press == 1)                       
+  49   2                  { 
+  50   3                       key_return = KEY_1_SHORT;            
+  51   3                       key_state = KEY_STATE_0;       
+  52   3                  } 
+C51 COMPILER V9.56.0.0   KEY                                                               08/07/2020 15:18:24 PAGE 2   
+
+  53   2                  else
+  54   2                  {
+  55   3                      key_time++;                     
+  56   3       
+  57   3                      if(key_time >= LONG_KEY_TIME)   
+  58   3                      {
+  59   4                          key_return = KEY_1_LONG;         
+  60   4                          key_state = KEY_STATE_3;    
+  61   4                      }
+  62   3              delay_ms(10);
+  63   3                  }
+  64   2                  break;
+  65   2       
+  66   2            case KEY_STATE_3:                         
+  67   2                if (key_press == 1) 
+  68   2                {
+  69   3                    key_state = KEY_STATE_0;          
+  70   3                }         
+  71   2                break; 
+  72   2       
+  73   2              default:                               
+  74   2                  key_state = KEY_STATE_0;
+  75   2                  break;
+  76   2          }
+  77   1       
+  78   1          return key_return;                         
+  79   1      
+  80   1      }
+  81          u8 key_scan(void)
+  82          {
+  83   1        static u8 key_up = 1;
+  84   1        static u16 key_pres_time = 0;
+  85   1      
+  86   1      
+  87   1        if(key_driver() == KEY_1_LONG)
+  88   1        {
+  89   2            KEY_printf("LONG_KEY\r\n");
+  90   2            return KEY_1_PRES;
+  91   2        }
+  92   1        else if(key_up && (KEY_2 == 0 || KEY_3 == 0))
+  93   1        {
+  94   2          delay_ms(50); 
+  95   2          key_up=0;
+  96   2          if(KEY_2 == 0)
+  97   2          {
+  98   3             KEY_printf("TEMPER_KEY\r\n");
+  99   3            return KEY_2_PRES;  //修改按键参数
+ 100   3          }
+ 101   2          else if(KEY_3 == 0)
+ 102   2          { 
+ 103   3            KEY_printf("TIME_KEY\r\n");
+ 104   3            return KEY_3_PRES;
+ 105   3          }
+ 106   2        }else if(KEY_2 == 1 && KEY_3 == 1)
+ 107   1          key_up=1;   
+ 108   1      
+ 109   1        if(KEY_1 == 1 && key_pres_time > 1)
+ 110   1          key_pres_time = 0;
+ 111   1        return 0;// 无按键按下
+ 112   1      }
+
+
+C51 COMPILER V9.56.0.0   KEY                                                               08/07/2020 15:18:24 PAGE 3   
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    307    ----
+   CONSTANT SIZE    =     35    ----
+   XDATA SIZE       =      6       2
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
