@@ -29,28 +29,27 @@
 const u16 NTC_ADC_Table[30] =
 {
 	//160, 148, 136, 124, 110, 102, 94, 86, 78,  70,  // 61℃ ~70℃
-	 65,  60,  55,  50,   45,  42, 39, 36, 33,  30,  // 71℃ ~80℃
-	 28,  26,  24,  22,   19,  18, 17, 16, 15,  13,  // 81℃ ~90℃
-	 12,  11,  10,   9,    8,   7,  6,  5,  4,   3,   // 91℃ ~100℃
+	65,  60,  55,  50,   45,  42, 39, 36, 33,  30,  // 71℃ ~80℃
+	28,  26,  24,  22,   19,  18, 17, 16, 15,  13,  // 81℃ ~90℃
+	12,  11,  10,   9,    8,   7,  6,  5,  4,   3,   // 91℃ ~100℃
 };
-u16 ADC_val[30] = {0};
-u16 ADC_val_PTC[30] = {0};
-
+u16 ADC_val[20] = {0};
+u16 ADC_val_PTC[20] = {0};
+u16 ADC_val_AC[20] = {0};
+u16 ADC_val_insert[20] = {0};
 
 u16 adc_cnt = 0;
 u8  first_heat_std = 0;
 u8  error_std = 0;
-//u16 PTC_adc_val = 0,NTC_adc_val = 0;
-u8 adc_test_std = 1;
- 
+u8  adc_test_std = 1;
+u8  Insert_std = 0;
 
 void Clock ( void );
 void Set_Temp ( u16 temp );
 void Controll_Heat ( u16 temp_set,u16 temp_now );
-void Protect ( void );
 u8 look_up_table ( const u16* a,u8 ArrayLong,u16 Data );
 //u8 calcuTem(u16 RW,const u16 * tempRes_buf);
-void Sort(u16 *arr, int n);
+void Sort ( u16* arr, int n );
 
 
 
@@ -81,17 +80,7 @@ static void key_handle ( void )
 		{
 			set_device_state ( ON );
 			set_time_sec();
-			if ( flash_info.gap > GAP_1 )
-			{
-				if ( flash_info.timer == TIMER_ON )
-				{
-					On_stay = 2;
-				}
-				else if ( flash_info.timer > TIMER_2H )
-				{
-					Gap_protect_std = 2;
-				}
-			}
+
 			first_heat_std = 1;
 
 		}
@@ -114,17 +103,7 @@ static void key_handle ( void )
 			{
 				flash_info.gap = GAP_1;
 			}
-			if ( flash_info.gap > GAP_1 )
-			{
-				if ( flash_info.timer == TIMER_ON )
-				{
-					On_stay = 2;
-				}
-				else if ( flash_info.timer > TIMER_2H )
-				{
-					Gap_protect_std = 2;
-				}
-			}
+
 
 			first_heat_std = 1;
 
@@ -152,103 +131,156 @@ static void key_handle ( void )
 	}
 }
 
-u16 temp_calc_PTC(u16 *adc_pdata)
+u16 temp_calc_PTC ( u16* adc_pdata )
 {
-  float temp1 = 0;
+	float temp1 = 0;
 	float temp2 = 0;
 	u16 i = 0;
 	u16  bais_temp = 25;
-	
-  Sort(adc_pdata, 30);
-  	
-//	for(i=0;i<30;i++)
-//	{
-//	  gm_printf ( " %d  ",adc_pdata[i] );
-//	}
-	  if(adc_pdata[29] < 10) return 0xff;
-     gm_printf ( "adc_max = %d  \r\n",adc_pdata[29] ); 
-    temp1 = (float)adc_pdata[29]/4095;
 
-	gm_printf ( "u1 = %f  \r\n",temp1 ); 
-	  temp1 = temp1*4;
-//	gm_printf ( "temp1 = %f  \r\n",temp1 ); 
-	 temp1 = temp1/1.414;
+	Sort ( adc_pdata, 20 );
+
+//	for ( i=0; i<20; i++ )
+//	{
+//		gm_printf ( " %d  ",adc_pdata[i] );
+//	}
+//	if ( adc_pdata[19] < 10 )
+//	{
+//		return 0xff;
+//	}
+//	gm_printf ( "adc_max = %d  \r\n",adc_pdata[19] );
+	temp1 = ( float ) adc_pdata[19]/4095;
+
+//	gm_printf ( "u1 = %f  \r\n",temp1 );
+	temp1 = temp1*4.2;
+//	gm_printf ( "temp1 = %f  \r\n",temp1 );
+	temp1 = temp1/1.414;
 //	gm_printf ( "AC_real = %f  \r\n",temp1 );
-	 temp2 = 120 - temp1;
+	temp2 = 120 - temp1;
 //	gm_printf ( "AC_PTC_real = %f  \r\n",temp2 );
-	
-	  temp2 =  temp2/ temp1*0.43;
-	gm_printf ( "R = %f  \r\n",temp2 );
-    if (temp2 < 122.93) return 0;
-		
-	 if(temp2 >Temperature_Value)
-	 {
-	  temp1 = temp2 - Temperature_Value;
-		 i = (u16)(temp1 / 0.57);
-	   bais_temp = bais_temp + i;
-	 }
-	 else  if(temp2 < Temperature_Value)
-	 {
-	  temp1 = Temperature_Value - temp2;
-		 i = (u16)(temp1 / 0.57);
-		 if(i > 25) i = 25;
-		 
-	   bais_temp = bais_temp - i;
-	 }
-	 gm_printf ( "temper = %d  \r\n", bais_temp );
-	 
+
+	temp2 =  temp2/ temp1*0.43;
+	gm_printf ( "PTC_R = %f  \r\n",temp2 );
+	if ( temp2 < 122.93 )
+	{
+		return 0;
+	}
+
+	if ( temp2 >Temperature_Value )
+	{
+		temp1 = temp2 - Temperature_Value;
+		i = ( u16 ) ( temp1 / 0.57 );
+		bais_temp = bais_temp + i;
+		if (bais_temp > 100)
+			return 0xff;
+	}
+	else  if ( temp2 < Temperature_Value )
+	{
+		temp1 = Temperature_Value - temp2;
+		i = ( u16 ) ( temp1 / 0.57 );
+		if ( i > 25 )
+		{
+			i = 25;
+		}
+
+		bais_temp = bais_temp - i;
+	}
+	gm_printf ( "PTC_temper = %d  \r\n", bais_temp );
+
 	return bais_temp;
 }
 
-u16 temp_calc ( u16 *adc_NTC_pdata )
+u16 temp_calc ( u16* adc_NTC_pdata )
 {
 	float u1 = 0;
 	float u3 = 0;
 	int i = 0;
 	u32 adc_max =0;
-	
+
 //	if ( PTC_VAL < 50 )
 //	{
 //		return 0xff;
 //	}
-//	gm_printf ( " adc_pdata:\r\n");
-//	for(i=0;i<30;i++)
+//	gm_printf ( " adc_NTC_pdata:\r\n" );
+//	for ( i=0; i<20; i++ )
 //	{
-//	  gm_printf ( " %d  ",adc_pdata[i] );
+//		gm_printf ( " %d  ",adc_NTC_pdata[i] );
 //	}
-//	gm_printf ( "\r\n");
-	Sort(adc_NTC_pdata, 30);
-//	gm_printf ( "sort:\r\n");
-//	for(i=0;i<30;i++)
+//	gm_printf ( "\r\n" );
+	Sort ( adc_NTC_pdata, 20 );
+//	gm_printf ( "sort:\r\n" );
+//	for ( i=0; i<20; i++ )
 //	{
-//	  gm_printf ( " %d  ",adc_pdata[i] );
+//		gm_printf ( " %d  ",adc_NTC_pdata[i] );
 //	}
-//		gm_printf ( "\r\n");	
+//	gm_printf ( "\r\n" );
 //	gm_printf ( "\r\n");
-	
-		//u1 = PTC_adc_val /1000;
-		
- //   NTC_adc_val = sqrt ( NTC_adc_val/50 );
 
-	
-   u1 = (float)adc_NTC_pdata[29]/4095;
-//	gm_printf ( "u1 = %f  \r\n",u1 ); 
-	 u1 = u1*4;
-//	gm_printf ( "u1 = %f  \r\n",u1 ); 
-	 u1 = u1/1.414;
-//	gm_printf ( "u1 = %f  \r\n",u1 ); 
-	
+	//u1 = PTC_adc_val /1000;
+
+//   NTC_adc_val = sqrt ( NTC_adc_val/50 );
+//	gm_printf ( "u1 = %d  \r\n",adc_NTC_pdata[19] );
+
+
+	u1 = ( float ) adc_NTC_pdata[19]/4095;
+//	gm_printf ( "u1 = %f  \r\n",u1 );
+	u1 = u1*4;
+//	gm_printf ( "u1 = %f  \r\n",u1 );
+	u1 = u1/1.414;
+//	gm_printf ( "u1 = %f  \r\n",u1 );
+
 	u3 = 120.00 - u1;
-//	gm_printf ( "u3 = %f  \r\n",u3 ); 
+//	gm_printf ( "u3 = %f  \r\n",u3 );
 
-   u3 = u3/u1*510;
-//	gm_printf ( "adc_max = %f  \r\n",u3 ); 
-	 adc_max = u3/1000;
-	// gm_printf ( "adc_max = %d  \r\n",(u16)adc_max ); 
-	i = look_up_table ( NTC_ADC_Table,30 ,(u16)adc_max );
-	//gm_printf ( "temp = %d  \r\n",i ); 
+	u3 = u3/u1*510;
+	gm_printf ( "NTC_R = %f  \r\n",u3 );
+	adc_max = u3/1000;
+	// gm_printf ( "adc_max = %d  \r\n",(u16)adc_max );
+	i = look_up_table ( NTC_ADC_Table,30, ( u16 ) adc_max );
+	gm_printf ( "NTC_temp = %d  \r\n",i );
 	return ( i );
 }
+
+void  temp_calc_AC_Insert ( u16* pdata_ac,u16* pdata_insert )
+{
+	float u1 = 0;
+	float u3 = 0;
+	int i = 0;
+	u32 adc_max =0;
+
+	Sort ( pdata_ac, 20 );
+	
+//	gm_printf ( "AC:\r\n");
+//	for ( i=0; i<20; i++ )
+//	{
+//		gm_printf ( " %d  ",pdata_ac[i] );
+//	}
+//	gm_printf ( "\r\n" );
+	gm_printf ( "pdata_ac_max = %d\r\n",pdata_ac[19]);
+//	gm_printf ( "\r\n");
+//	gm_printf ( "\r\n");
+//
+//	gm_printf ( "Insert:\r\n");
+	Sort ( pdata_insert, 20 );
+//	for ( i=0; i<20; i++ )
+//	{
+//		gm_printf ( " %d  ",pdata_insert[i] );
+//	}
+//	gm_printf ( "\r\n" );
+	gm_printf ( "pdata_insert_max = %d\r\n",pdata_insert[19]);
+//	gm_printf ( "\r\n" );
+//	gm_printf ( "\r\n" );
+	if (pdata_insert[19] > 150)
+		{
+         Insert_std = 1;
+	   }
+	else 
+		{
+         Insert_std = 0;
+	   }
+
+}
+
 
 
 
@@ -264,6 +296,7 @@ void temperature_handle ( void )
 {
 	u16 temp = 0;
 	static u16 adc_val1 = 0,adc_val3 = 0;
+	static u16 adc_val_input = 0,adc_val_insert = 0;
 	static u16 adc_test = 0;
 	static u8 adc_times = 0;
 	adc_cnt++;
@@ -273,19 +306,22 @@ void temperature_handle ( void )
 		if ( ++adc_test >= 50 )
 		{
 
-			ADC_EN = 1;
-			
+
+
 			adc_test = 0;
 			get_ADC_val ( &adc_val1, &adc_val3 );
-			ADC_val[adc_times] = adc_val3; 
+			calc_InputAndInsert_val ( &adc_val_input, &adc_val_insert );
+			ADC_val[adc_times] = adc_val3;
 			ADC_val_PTC[adc_times] = adc_val1;
+			ADC_val_AC[adc_times] = adc_val_input;
+			ADC_val_insert[adc_times] = adc_val_insert;
 			adc_times++;
-	//		PTC_adc_val = PTC_adc_val + adc_val1;
-			
-		//	NTC_adc_val = NTC_adc_val + ( adc_val3*adc_val1 );
-			ADC_EN = 0;
+			//		PTC_adc_val = PTC_adc_val + adc_val1;
+
+			//	NTC_adc_val = NTC_adc_val + ( adc_val3*adc_val1 );
+
 		}
-		if ( adc_times > 30 )
+		if ( adc_times > 20 )
 		{
 			adc_times = 0;
 			adc_test_std = 2;
@@ -295,20 +331,21 @@ void temperature_handle ( void )
 	{
 		adc_cnt = 0;
 
-		if (adc_test_std == 2)
-		{	
-			gm_printf ( " adc_test_std = 2\r\n");
-			gm_printf ( "\r\n");
-			temp_calc ( ADC_val );
-		temp = temp_calc_PTC( ADC_val_PTC );
-	//	KEY_printf ( "PTC = %d  NTC =%d\r\n",PTC_adc_val,NTC_adc_val );  //pjw set
-		
-	  adc_test_std = 1;
-		//	KEY_printf ( "temp val:%d \r\n",temp );
-		}
-		if ( 1 )  //adc_val1 >50
+		if ( adc_test_std == 2 )
 		{
-			if ( get_device_state() == OFF )
+//			gm_printf ( " adc_test_std = 2\r\n" );
+//			gm_printf ( "\r\n" );
+			temp_calc ( ADC_val );
+			temp = temp_calc_PTC ( ADC_val_PTC );
+			temp_calc_AC_Insert ( ADC_val_AC,ADC_val_insert );
+			//	KEY_printf ( "PTC = %d  NTC =%d\r\n",PTC_adc_val,NTC_adc_val );  //pjw set
+
+			adc_test_std = 1;
+			//	KEY_printf ( "temp val:%d \r\n",temp );
+		}
+		if ( Insert_std == 1 )  //adc_val1 >50
+		{
+			if ( 1 ) //get_device_state() == OFF
 			{
 				if ( first_heat_std == 1 )
 				{
@@ -316,7 +353,7 @@ void temperature_handle ( void )
 					if ( temp > 50 )
 					{
 						Heat_start_std = 1;
-						Open_Heat_Value = corrected_value_GAP_4_temp	;
+						Open_Heat_Value = corrected_value_GAP_4_temp;
 					}
 					else
 					{
@@ -327,8 +364,8 @@ void temperature_handle ( void )
 
 				lcd_display_time ( flash_info.timer );
 				lcd_display_gap ( flash_info.gap );
-				Set_Temp ( temp );
-//				set_pwm ( 10 );
+				//	Set_Temp ( temp );
+				set_pwm ( 10 );
 			}
 			else
 			{
@@ -383,10 +420,8 @@ void main()
 	while ( 1 )
 	{
 
-
 		temperature_handle();
 		key_handle ();
-		Protect ();
 		clear_wdt();
 
 	}
@@ -476,19 +511,19 @@ void Set_Temp ( u16 temp )
   * @param  null
   * @retval None
   */
-void Protect ( void )
-{
-	if ( over_rang_time_std == 1 )
-	{
-		if ( flash_info.gap > GAP_1 )
-		{
-			flash_info.gap = GAP_1;
-
-			flah_save_data();
-			over_rang_time_std = 0;
-		}
-	}
-}
+//void Protect ( void )
+//{
+//	if ( over_rang_time_std == 1 )
+//	{
+//		if ( flash_info.gap > GAP_1 )
+//		{
+//			flash_info.gap = GAP_1;
+//
+//			flah_save_data();
+//			over_rang_time_std = 0;
+//		}
+//	}
+//}
 
 u8 look_up_table ( const u16* a,u8 ArrayLong,u16 Data )
 {
@@ -555,17 +590,17 @@ u8 look_up_table ( const u16* a,u8 ArrayLong,u16 Data )
 //
 //  return tempValue;
 //}
-void Sort(u16 *arr, int n)
+void Sort ( u16* arr, int n )
 {
-    int m, i, j;
-    for (i = 0; i < n - 1; i++)
-        for (j = 0; j < n - 1 - i; j++)
-            if (arr[j] > arr[j + 1])
-            {
-                m = arr[j];
-                arr[j] = arr[j + 1];
-                arr[j + 1] = m;
-            }
+	int m, i, j;
+	for ( i = 0; i < n - 1; i++ )
+		for ( j = 0; j < n - 1 - i; j++ )
+			if ( arr[j] > arr[j + 1] )
+			{
+				m = arr[j];
+				arr[j] = arr[j + 1];
+				arr[j + 1] = m;
+			}
 }
 
 

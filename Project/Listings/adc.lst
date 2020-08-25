@@ -1,4 +1,4 @@
-C51 COMPILER V9.56.0.0   ADC                                                               08/07/2020 15:18:24 PAGE 1   
+C51 COMPILER V9.56.0.0   ADC                                                               08/20/2020 19:57:58 PAGE 1   
 
 
 C51 COMPILER V9.56.0.0, COMPILATION OF MODULE ADC
@@ -19,7 +19,7 @@ line level    source
    7   1        P0M3 = 0x01;    //P03设置为模拟输入
    8   1        P0M2 = 0x01;    //P02设置为模拟输入
    9   1        P0M7 = 0x01;        //P07设置为模拟输入
-  10   1          P2M2 = 0xC1;        //P26设置为推挽输出/端口输出能力10mA
+  10   1          P0M1 = 0x01;        //P01设置为模拟输入
   11   1        ADCC0 = 0x81;   //打开ADC转换电源     
   12   1        //00 VDD
   13   1      //                      01 内部4V
@@ -35,7 +35,7 @@ line level    source
   23   1        ADCC2 = 0x41;         //转换结果12位数据，数据右对齐，ADC时钟4分频 4M/4 = 1MHz
   24   1      }
   25          
-  26          u16 get_adc_val_P02 ( void )
+  26          static u16 get_adc_val_P02 ( void )
   27          {
   28   1        u16 adc_val = 0;
   29   1        ADCC1 = 0x02;           //选择ADC通道7
@@ -43,13 +43,13 @@ line level    source
   31   1        while ( ! ( ADCC0&0x20 ) );     //等待ADC转换结束
   32   1        ADCC0 &=~ 0x20;         //清除标志位
   33   1        adc_val = ADCR;         //获取ADC的值
-  34   1      //  ADCR = 0;
+  34   1        ADCR = 0;
   35   1        return adc_val;
   36   1      }
   37          
   38          
   39          
-  40          u16 get_adc_val_P07 ( void )
+  40          static u16 get_adc_val_P07 ( void )
   41          {
   42   1        u16 adc_val = 0;
   43   1        ADCC1 = 0x07;           //选择ADC通道7
@@ -57,12 +57,12 @@ line level    source
   45   1        while ( ! ( ADCC0&0x20 ) );     //等待ADC转换结束
   46   1        ADCC0 &=~ 0x20;         //清除标志位
   47   1        adc_val = ADCR;         //获取ADC的值
-  48   1      //  ADCR = 0;
+  48   1        ADCR = 0;
   49   1        return adc_val;
   50   1      }
   51          
-  52          u16 get_adc_val_P03 ( void )
-C51 COMPILER V9.56.0.0   ADC                                                               08/07/2020 15:18:24 PAGE 2   
+  52          static u16 get_adc_val_P03 ( void )
+C51 COMPILER V9.56.0.0   ADC                                                               08/20/2020 19:57:58 PAGE 2   
 
   53          {
   54   1        u16 adc_val = 0;
@@ -71,29 +71,52 @@ line level    source
   57   1        while ( ! ( ADCC0&0x20 ) );     //等待ADC转换结束
   58   1        ADCC0 &=~ 0x20;         //清除标志位
   59   1        adc_val = ADCR;         //获取ADC的值
-  60   1      //  ADCR = 0;
+  60   1        ADCR = 0;
   61   1        return adc_val;
   62   1      }
   63          
-  64          
-  65          void get_ADC_val ( u16* PTC_voltage_ch7 ,u16* RTD2_voltage_ch3 )
-  66          {
-  67   1        u32 temp = 0;
-  68   1          temp = get_adc_val_P07();
-  69   1        *PTC_voltage_ch7 = temp;
-  70   1        delay_us ( 20 );
-  71   1        temp = 0;
-  72   1        temp = get_adc_val_P03();
-  73   1        *RTD2_voltage_ch3 = temp;
+  64          static u16 get_adc_val_P01 ( void )
+  65          {
+  66   1        u16 adc_val = 0;
+  67   1        ADCC1 = 0x01;           //选择ADC通道1
+  68   1        ADCC0 |= 0x40;          //启动ADC转换
+  69   1        while ( ! ( ADCC0&0x20 ) );     //等待ADC转换结束
+  70   1        ADCC0 &=~ 0x20;         //清除标志位
+  71   1        adc_val = ADCR;         //获取ADC的值
+  72   1        ADCR = 0;
+  73   1        return adc_val;
   74   1      }
   75          
-  76          
+  76          void get_ADC_val ( u16* PTC_voltage_ch7 ,u16* RTD1_voltage_ch2 )
+  77          {
+  78   1        u32 temp = 0;
+  79   1          temp = get_adc_val_P07();
+  80   1        *PTC_voltage_ch7 = temp;
+  81   1        delay_us ( 20 );
+  82   1        temp = 0;
+  83   1        temp = get_adc_val_P02();
+  84   1        *RTD1_voltage_ch2 = temp;
+  85   1      }
+  86          
+  87          void calc_InputAndInsert_val(u16 * input_voltage_ch1, u16 * insert_voltage_ch3)
+  88          {
+  89   1        u32 temp = 0;
+  90   1          temp = get_adc_val_P01();
+  91   1        *input_voltage_ch1 = temp;
+  92   1        delay_us ( 20 );
+  93   1        temp = 0;
+  94   1        temp = get_adc_val_P03();
+  95   1        *insert_voltage_ch3 = temp;
+  96   1      
+  97   1      
+  98   1      }
+  99          
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =    153    ----
+   CODE SIZE        =    243    ----
    CONSTANT SIZE    =   ----    ----
-   XDATA SIZE       =   ----       6
+   XDATA SIZE       =   ----      12
    PDATA SIZE       =   ----    ----
    DATA SIZE        =   ----    ----
    IDATA SIZE       =   ----    ----

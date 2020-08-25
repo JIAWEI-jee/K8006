@@ -13,7 +13,6 @@
 #define SEG4    P1_4
 #define SEG5    P1_3
 
-
 #define Error      0xff
 #define Clear_lcd  0xce
 #define all_on     0xcc
@@ -48,7 +47,7 @@ typedef struct display_set
 } display_set;
 
 extern display_set lcd_set;
-
+extern unsigned char LCD_STD;
 extern unsigned char guc_DisFreshStep ;
 
 void LCD_Init ( void );
@@ -58,5 +57,6 @@ void lcd_display_time ( u8 time );
 void lcd_display_gap ( u8 gap );
 void lcd_clear_all ( void );
 void lcd_error ( void );
+void lcd_off(u8 std);
 void lcd_display_On(void);
 #endif

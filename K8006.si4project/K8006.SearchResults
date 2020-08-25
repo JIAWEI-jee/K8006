@@ -1,0 +1,8 @@
+---- temp_time Matches (7 in 1 files) ----
+timer.c (hardware\Timer) line 14 : u16 temp_time = 0 ;
+set_time_sec in timer.c (hardware\Timer) : 		temp_time = 0;
+set_time_sec in timer.c (hardware\Timer) : 		temp_time = 0;
+set_time_sec in timer.c (hardware\Timer) : 		temp_time = 0;
+set_time_sec in timer.c (hardware\Timer) : 		temp_time = 0;
+set_time_sec in timer.c (hardware\Timer) : 		temp_time = 0;
+set_time_sec in timer.c (hardware\Timer) : 		temp_time = 0;

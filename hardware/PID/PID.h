@@ -20,6 +20,7 @@ typedef struct PID_Value
 extern PID_ValueStr spid;
 
 void PID_Operation ( void );
+void PID_Init(void);
 
 
 #endif

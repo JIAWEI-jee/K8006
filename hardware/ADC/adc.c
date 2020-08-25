@@ -7,7 +7,7 @@ void adc_init ( void )
 	P0M3 = 0x01;		//P03设置为模拟输入
 	P0M2 = 0x01;		//P02设置为模拟输入
 	P0M7 = 0x01;        //P07设置为模拟输入
-    P2M2 = 0xC1;        //P26设置为推挽输出/端口输出能力10mA
+    P0M1 = 0x01;        //P01设置为模拟输入
 	ADCC0 = 0x81;		//打开ADC转换电源			
 	//00 VDD
 //											01 内部4V
@@ -23,7 +23,7 @@ void adc_init ( void )
 	ADCC2 = 0x41;					//转换结果12位数据，数据右对齐，ADC时钟4分频 4M/4 = 1MHz
 }
 
-u16 get_adc_val_P02 ( void )
+static u16 get_adc_val_P02 ( void )
 {
 	u16 adc_val = 0;
 	ADCC1 = 0x02;						//选择ADC通道7
@@ -31,13 +31,13 @@ u16 get_adc_val_P02 ( void )
 	while ( ! ( ADCC0&0x20 ) );			//等待ADC转换结束
 	ADCC0 &=~ 0x20;					//清除标志位
 	adc_val = ADCR;					//获取ADC的值
-//	ADCR = 0;
+	ADCR = 0;
 	return adc_val;
 }
 
 
 
-u16 get_adc_val_P07 ( void )
+static u16 get_adc_val_P07 ( void )
 {
 	u16 adc_val = 0;
 	ADCC1 = 0x07;						//选择ADC通道7
@@ -45,11 +45,11 @@ u16 get_adc_val_P07 ( void )
 	while ( ! ( ADCC0&0x20 ) );			//等待ADC转换结束
 	ADCC0 &=~ 0x20;					//清除标志位
 	adc_val = ADCR;					//获取ADC的值
-//	ADCR = 0;
+	ADCR = 0;
 	return adc_val;
 }
 
-u16 get_adc_val_P03 ( void )
+static u16 get_adc_val_P03 ( void )
 {
 	u16 adc_val = 0;
 	ADCC1 = 0x03;						//选择ADC通道3
@@ -57,20 +57,42 @@ u16 get_adc_val_P03 ( void )
 	while ( ! ( ADCC0&0x20 ) );			//等待ADC转换结束
 	ADCC0 &=~ 0x20;					//清除标志位
 	adc_val = ADCR;					//获取ADC的值
-//	ADCR = 0;
+	ADCR = 0;
 	return adc_val;
 }
 
+static u16 get_adc_val_P01 ( void )
+{
+	u16 adc_val = 0;
+	ADCC1 = 0x01;						//选择ADC通道1
+	ADCC0 |= 0x40;					//启动ADC转换
+	while ( ! ( ADCC0&0x20 ) );			//等待ADC转换结束
+	ADCC0 &=~ 0x20;					//清除标志位
+	adc_val = ADCR;					//获取ADC的值
+	ADCR = 0;
+	return adc_val;
+}
 
-void get_ADC_val ( u16* PTC_voltage_ch7 ,u16* RTD2_voltage_ch3 )
+void get_ADC_val ( u16* PTC_voltage_ch7 ,u16* RTD1_voltage_ch2 )
 {
 	u32 temp = 0;
     temp = get_adc_val_P07();
 	*PTC_voltage_ch7 = temp;
 	delay_us ( 20 );
 	temp = 0;
-	temp = get_adc_val_P03();
-	*RTD2_voltage_ch3 = temp;
+	temp = get_adc_val_P02();
+	*RTD1_voltage_ch2 = temp;
 }
 
+void calc_InputAndInsert_val(u16 * input_voltage_ch1, u16 * insert_voltage_ch3)
+{
+  u32 temp = 0;
+    temp = get_adc_val_P01();
+	*input_voltage_ch1 = temp;
+	delay_us ( 20 );
+	temp = 0;
+	temp = get_adc_val_P03();
+	*insert_voltage_ch3 = temp;
+
+}
 

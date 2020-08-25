@@ -2,11 +2,12 @@
 #define __KEY_H__
 #include "HC89F3541.H"
 
-#define KEY_1 	P0_1
-#define KEY_2 	P2_7
-#define KEY_3 	P0_0
+#define KEY_1 	   P0_1
+#define KEY_2 	   P2_0
+#define KEY_3 	   P0_0
+#define EN_BT134   P2_1
 
-#define Insert_Test P0_2
+
 
 #define KEY_1_PRES 	1	//KEY1按下
 #define KEY_2_PRES	2	//KEY2按下

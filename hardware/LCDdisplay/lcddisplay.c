@@ -4,6 +4,7 @@
 display_set lcd_set = {0,0};
 
 unsigned char guc_DisFreshStep = 0;
+unsigned char LCD_STD = 0;
 void set_gap ( u8 gap );
 void set_time ( u8 temp );
 
@@ -24,8 +25,14 @@ void LCD_Init ( void )
 	SEG5 = 0;
 }
 
+void lcd_off(u8 std)
+{
+ LCD_STD = std;
+}
+
 void lcd_clear_all ( void )
 {
+	
 	lcd_set.gap_display = Clear_lcd;
 	lcd_set.time_display = Clear_lcd;
 }
@@ -34,12 +41,14 @@ void lcd_error ( void )
 	static u8 error_std = 0;
 	if ( error_std == 0 )
 	{
+		
 		lcd_set.gap_display = Clear_lcd;
 		lcd_set.time_display = Clear_lcd;
 		error_std = 1;
 	}
 	else if ( error_std == 1 )
 	{
+		
 		lcd_set.gap_display = Error;
 		error_std = 0;
 	}
@@ -47,12 +56,13 @@ void lcd_error ( void )
 }
 void lcd_display_time ( u8 time )
 {
+	
 	lcd_set.time_display = time;
 }
 
 void lcd_display_gap ( u8 gap )
 {
-
+ 
 	lcd_set.gap_display = gap;
 
 }
@@ -64,11 +74,14 @@ void lcd_display_On ( void )
 }
 void LCD_Display ( void )
 {
-
+ if ( (LCD_STD == ON)||(LCD_STD == Error))
+	 {
+		 LCDCON |= 0xE8;
 	switch ( guc_DisFreshStep )
 	{
 		case Frame0_COM0:
-			LCDCON &=~ 0x10;   //FRAME 0
+		
+		LCDCON &=~ 0x10;   //FRAME 0
 
 			COM0 = 1;
 			COM1 = 0;
@@ -164,6 +177,11 @@ void LCD_Display ( void )
 			guc_DisFreshStep = Frame0_COM0;
 			break;
 	}
+ }
+ else if (LCD_STD == OFF)
+ {
+    LCDCON = 0x68;
+ }
 }
 
 //void LCD_Display_seg ( void )
@@ -429,6 +447,144 @@ void set_gap ( u8 number )
 			{
 				SEG3 = 1;
 				SEG4 = 0;
+			}
+			if ( ( guc_DisFreshStep ==  Frame0_COM2 ) || ( guc_DisFreshStep == Frame1_COM2 ) )
+			{
+				SEG3 = 1;
+				SEG4 = 1;
+			}
+			if ( ( guc_DisFreshStep ==  Frame0_COM3 ) || ( guc_DisFreshStep == Frame1_COM3 ) )
+			{
+				SEG3 = 1;
+				SEG4 = 0;
+			}
+			break;
+		case GAP_4:
+			if ( ( guc_DisFreshStep ==  Frame0_COM0 ) || ( guc_DisFreshStep == Frame1_COM0 ) )
+			{
+
+				SEG3 = 0;
+				SEG4 = 0;
+			}
+			if ( ( guc_DisFreshStep ==  Frame0_COM1 ) || ( guc_DisFreshStep == Frame1_COM1 ) )
+			{
+				SEG3 = 1;
+				SEG4 = 1;
+			}
+			if ( ( guc_DisFreshStep ==  Frame0_COM2 ) || ( guc_DisFreshStep == Frame1_COM2 ) )
+			{
+				SEG3 = 1;
+				SEG4 = 1;
+			}
+			if ( ( guc_DisFreshStep ==  Frame0_COM3 ) || ( guc_DisFreshStep == Frame1_COM3 ) )
+			{
+				SEG3 = 0;
+				SEG4 = 0;
+			}
+			break;
+		case GAP_5:
+			if ( ( guc_DisFreshStep ==  Frame0_COM0 ) || ( guc_DisFreshStep == Frame1_COM0 ) )
+			{
+
+				SEG3 = 1;
+				SEG4 = 0;
+			}
+			if ( ( guc_DisFreshStep ==  Frame0_COM1 ) || ( guc_DisFreshStep == Frame1_COM1 ) )
+			{
+				SEG3 = 0;
+				SEG4 = 1;
+			}
+			if ( ( guc_DisFreshStep ==  Frame0_COM2 ) || ( guc_DisFreshStep == Frame1_COM2 ) )
+			{
+				SEG3 = 1;
+				SEG4 = 1;
+			}
+			if ( ( guc_DisFreshStep ==  Frame0_COM3 ) || ( guc_DisFreshStep == Frame1_COM3 ) )
+			{
+				SEG3 = 1;
+				SEG4 = 0;
+			}
+			break;
+		case GAP_6:
+			if ( ( guc_DisFreshStep ==  Frame0_COM0 ) || ( guc_DisFreshStep == Frame1_COM0 ) )
+			{
+
+				SEG3 = 1;
+				SEG4 = 0;
+			}
+			if ( ( guc_DisFreshStep ==  Frame0_COM1 ) || ( guc_DisFreshStep == Frame1_COM1 ) )
+			{
+				SEG3 = 0;
+				SEG4 = 1;
+			}
+			if ( ( guc_DisFreshStep ==  Frame0_COM2 ) || ( guc_DisFreshStep == Frame1_COM2 ) )
+			{
+				SEG3 = 1;
+				SEG4 = 1;
+			}
+			if ( ( guc_DisFreshStep ==  Frame0_COM3 ) || ( guc_DisFreshStep == Frame1_COM3 ) )
+			{
+				SEG3 = 1;
+				SEG4 = 1;
+			}
+			break;
+		case GAP_7:
+			if ( ( guc_DisFreshStep ==  Frame0_COM0 ) || ( guc_DisFreshStep == Frame1_COM0 ) )
+			{
+
+				SEG3 = 1;
+				SEG4 = 0;
+			}
+			if ( ( guc_DisFreshStep ==  Frame0_COM1 ) || ( guc_DisFreshStep == Frame1_COM1 ) )
+			{
+				SEG3 = 1;
+				SEG4 = 0;
+			}
+			if ( ( guc_DisFreshStep ==  Frame0_COM2 ) || ( guc_DisFreshStep == Frame1_COM2 ) )
+			{
+				SEG3 = 1;
+				SEG4 = 0;
+			}
+			if ( ( guc_DisFreshStep ==  Frame0_COM3 ) || ( guc_DisFreshStep == Frame1_COM3 ) )
+			{
+				SEG3 = 0;
+				SEG4 = 0;
+			}
+			break;
+		case GAP_8:
+			if ( ( guc_DisFreshStep ==  Frame0_COM0 ) || ( guc_DisFreshStep == Frame1_COM0 ) )
+			{
+
+				SEG3 = 1;
+				SEG4 = 0;
+			}
+			if ( ( guc_DisFreshStep ==  Frame0_COM1 ) || ( guc_DisFreshStep == Frame1_COM1 ) )
+			{
+				SEG3 = 1;
+				SEG4 = 1;
+			}
+			if ( ( guc_DisFreshStep ==  Frame0_COM2 ) || ( guc_DisFreshStep == Frame1_COM2 ) )
+			{
+				SEG3 = 1;
+				SEG4 = 1;
+			}
+			if ( ( guc_DisFreshStep ==  Frame0_COM3 ) || ( guc_DisFreshStep == Frame1_COM3 ) )
+			{
+				SEG3 = 1;
+				SEG4 = 1;
+			}
+			break;
+		case GAP_9:
+			if ( ( guc_DisFreshStep ==  Frame0_COM0 ) || ( guc_DisFreshStep == Frame1_COM0 ) )
+			{
+
+				SEG3 = 1;
+				SEG4 = 0;
+			}
+			if ( ( guc_DisFreshStep ==  Frame0_COM1 ) || ( guc_DisFreshStep == Frame1_COM1 ) )
+			{
+				SEG3 = 1;
+				SEG4 = 1;
 			}
 			if ( ( guc_DisFreshStep ==  Frame0_COM2 ) || ( guc_DisFreshStep == Frame1_COM2 ) )
 			{
