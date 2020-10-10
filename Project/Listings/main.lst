@@ -1,4 +1,4 @@
-C51 COMPILER V9.56.0.0   MAIN                                                              08/20/2020 19:57:58 PAGE 1   
+C51 COMPILER V9.56.0.0   MAIN                                                              08/28/2020 18:17:16 PAGE 1   
 
 
 C51 COMPILER V9.56.0.0, COMPILATION OF MODULE MAIN
@@ -55,595 +55,650 @@ line level    source
   43          u8  error_std = 0;
   44          u8  adc_test_std = 1;
   45          u8  Insert_std = 0;
-  46          
-  47          void Clock ( void );
-  48          void Set_Temp ( u16 temp );
-  49          void Controll_Heat ( u16 temp_set,u16 temp_now );
-  50          u8 look_up_table ( const u16* a,u8 ArrayLong,u16 Data );
-  51          //u8 calcuTem(u16 RW,const u16 * tempRes_buf);
-  52          void Sort ( u16* arr, int n );
-C51 COMPILER V9.56.0.0   MAIN                                                              08/20/2020 19:57:58 PAGE 2   
+  46          u8  Heat_std = 0,times = 0;
+  47          u16 adc_max =0;
+  48          
+  49          void Clock ( void );
+  50          void Set_Temp ( u16 temp );
+  51          void Controll_Heat ( u16 temp_set,u16 temp_now );
+  52          u8 look_up_table ( const u16* a,u8 ArrayLong,u16 Data );
+C51 COMPILER V9.56.0.0   MAIN                                                              08/28/2020 18:17:16 PAGE 2   
 
-  53          
-  54          
+  53          //u8 calcuTem(u16 RW,const u16 * tempRes_buf);
+  54          void Sort ( u16* arr, int n );
   55          
   56          
-  57          static void key_handle ( void )
-  58          {
-  59   1        u8 key_val = 0;
-  60   1      
-  61   1        if ( error_std == 0 )
+  57          
+  58          
+  59          static void key_handle ( void )
+  60          {
+  61   1        u8 key_val = 0;
   62   1      
-  63   1        {
-  64   2          key_val = key_scan();
-  65   2        }
-  66   1        else
-  67   1        {
-  68   2          key_val = 0;
-  69   2        }
-  70   1        if ( key_val == KEY_1_PRES )
-  71   1        {
-  72   2          KEY_printf ( " key_scan\r\n" );
-  73   2          if ( get_device_state() == ON )
-  74   2          {
-  75   3            set_device_state ( OFF );
-  76   3      
-  77   3            set_pwm ( 0 );
-  78   3          }
-  79   2          else
-  80   2          {
-  81   3            set_device_state ( ON );
-  82   3            set_time_sec();
-  83   3      
-  84   3            first_heat_std = 1;
+  63   1        if ( error_std == 0 )
+  64   1      
+  65   1        {
+  66   2          key_val = key_scan();
+  67   2        }
+  68   1        else
+  69   1        {
+  70   2          key_val = 0;
+  71   2        }
+  72   1        if ( key_val == KEY_1_PRES )
+  73   1        {
+  74   2          KEY_printf ( " key_scan\r\n" );
+  75   2          if ( get_device_state() == ON )
+  76   2          {
+  77   3            set_device_state ( OFF );
+  78   3      
+  79   3            set_pwm ( 0 );
+  80   3          }
+  81   2          else
+  82   2          {
+  83   3            set_device_state ( ON );
+  84   3            set_time_sec();
   85   3      
-  86   3          }
-  87   2        }
-  88   1        else if ( get_device_state() == ON )
-  89   1        {
-  90   2      
-  91   2      
+  86   3            first_heat_std = 1;
+  87   3      
+  88   3          }
+  89   2        }
+  90   1        else if ( get_device_state() == ON )
+  91   1        {
   92   2      
-  93   2          if ( key_val == KEY_2_PRES ) //??
-  94   2          {
-  95   3      
-  96   3            KEY_printf ( " KEY_2_PRES\r\n" );
-  97   3            if ( flash_info.gap < GAP_H )
-  98   3            {
-  99   4              flash_info.gap++;
- 100   4      
- 101   4            }
- 102   3            else
- 103   3            {
- 104   4              flash_info.gap = GAP_1;
- 105   4            }
- 106   3      
- 107   3      
- 108   3            first_heat_std = 1;
+  93   2      
+  94   2      
+  95   2          if ( key_val == KEY_2_PRES ) //??
+  96   2          {
+  97   3      
+  98   3            KEY_printf ( " KEY_2_PRES\r\n" );
+  99   3            if ( flash_info.gap < GAP_H )
+ 100   3            {
+ 101   4              flash_info.gap++;
+ 102   4      
+ 103   4            }
+ 104   3            else
+ 105   3            {
+ 106   4              flash_info.gap = GAP_1;
+ 107   4            }
+ 108   3      
  109   3      
- 110   3            lcd_display_gap ( flash_info.gap );
- 111   3            //set_time_sec();
- 112   3            flah_save_data();
- 113   3          }
- 114   2          else if ( key_val == KEY_3_PRES ) //??
-C51 COMPILER V9.56.0.0   MAIN                                                              08/20/2020 19:57:58 PAGE 3   
+ 110   3            first_heat_std = 1;
+ 111   3      
+ 112   3            lcd_display_gap ( flash_info.gap );
+ 113   3            //set_time_sec();
+ 114   3            flah_save_data();
+C51 COMPILER V9.56.0.0   MAIN                                                              08/28/2020 18:17:16 PAGE 3   
 
- 115   2          {
- 116   3      
- 117   3            if ( flash_info.timer < 0x05 )
- 118   3            {
- 119   4              flash_info.timer++;
- 120   4            }
- 121   3            else
- 122   3            {
- 123   4              flash_info.timer = TIMER_ON;
- 124   4            }
- 125   3      
- 126   3            KEY_printf ( "timer:%d \r\n", ( u16 ) flash_info.timer );
- 127   3            lcd_display_time ( flash_info.timer );
- 128   3            set_time_sec();
- 129   3            flah_save_data();
- 130   3          }
- 131   2        }
- 132   1      }
- 133          
- 134          u16 temp_calc_PTC ( u16* adc_pdata )
- 135          {
- 136   1        float temp1 = 0;
- 137   1        float temp2 = 0;
- 138   1        u16 i = 0;
- 139   1        u16  bais_temp = 25;
- 140   1      
- 141   1        Sort ( adc_pdata, 20 );
+ 115   3          }
+ 116   2          else if ( key_val == KEY_3_PRES ) //??
+ 117   2          {
+ 118   3      
+ 119   3            if ( flash_info.timer < 0x05 )
+ 120   3            {
+ 121   4              flash_info.timer++;
+ 122   4            }
+ 123   3            else
+ 124   3            {
+ 125   4              flash_info.timer = TIMER_ON;
+ 126   4            }
+ 127   3      
+ 128   3            KEY_printf ( "timer:%d \r\n", ( u16 ) flash_info.timer );
+ 129   3            lcd_display_time ( flash_info.timer );
+ 130   3            set_time_sec();
+ 131   3            flah_save_data();
+ 132   3          }
+ 133   2        }
+ 134   1      }
+ 135          
+ 136          u16 temp_calc_PTC ( u16* adc_pdata )
+ 137          {
+ 138   1        float temp1 = 0;
+ 139   1        float temp2 = 0;
+ 140   1        u16 i = 0;
+ 141   1        u16  bais_temp = 25;
  142   1      
- 143   1      //  for ( i=0; i<20; i++ )
- 144   1      //  {
- 145   1      //    gm_printf ( " %d  ",adc_pdata[i] );
- 146   1      //  }
- 147   1      //  if ( adc_pdata[19] < 10 )
- 148   1      //  {
- 149   1      //    return 0xff;
- 150   1      //  }
- 151   1      //  gm_printf ( "adc_max = %d  \r\n",adc_pdata[19] );
- 152   1        temp1 = ( float ) adc_pdata[19]/4095;
- 153   1      
- 154   1      //  gm_printf ( "u1 = %f  \r\n",temp1 );
- 155   1        temp1 = temp1*4.2;
- 156   1      //  gm_printf ( "temp1 = %f  \r\n",temp1 );
- 157   1        temp1 = temp1/1.414;
- 158   1      //  gm_printf ( "AC_real = %f  \r\n",temp1 );
- 159   1        temp2 = 120 - temp1;
- 160   1      //  gm_printf ( "AC_PTC_real = %f  \r\n",temp2 );
- 161   1      
- 162   1        temp2 =  temp2/ temp1*0.43;
- 163   1        gm_printf ( "PTC_R = %f  \r\n",temp2 );
- 164   1        if ( temp2 < 122.93 )
- 165   1        {
- 166   2          return 0;
- 167   2        }
- 168   1      
- 169   1        if ( temp2 >Temperature_Value )
- 170   1        {
- 171   2          temp1 = temp2 - Temperature_Value;
- 172   2          i = ( u16 ) ( temp1 / 0.57 );
- 173   2          bais_temp = bais_temp + i;
- 174   2          if (bais_temp > 100)
- 175   2            return 0xff;
- 176   2        }
-C51 COMPILER V9.56.0.0   MAIN                                                              08/20/2020 19:57:58 PAGE 4   
+ 143   1        Sort ( adc_pdata, 20 );
+ 144   1      
+ 145   1      //  for ( i=0; i<20; i++ )
+ 146   1      //  {
+ 147   1      //    gm_printf ( " %d  ",adc_pdata[i] );
+ 148   1      //  }
+ 149   1      //  if ( adc_pdata[19] < 10 )
+ 150   1      //  {
+ 151   1      //    return 0xff;
+ 152   1      //  }
+ 153   1      //  gm_printf ( "adc_max = %d  \r\n",adc_pdata[19] );
+ 154   1        temp1 = ( float ) adc_pdata[19]/4095;
+ 155   1      
+ 156   1      //  gm_printf ( "u1 = %f  \r\n",temp1 );
+ 157   1        temp1 = temp1*4.2;
+ 158   1      //  gm_printf ( "temp1 = %f  \r\n",temp1 );
+ 159   1        temp1 = temp1/1.414;
+ 160   1      //  gm_printf ( "AC_real = %f  \r\n",temp1 );
+ 161   1        temp2 = 120 - temp1;
+ 162   1      //  gm_printf ( "AC_PTC_real = %f  \r\n",temp2 );
+ 163   1      
+ 164   1        temp2 =  temp2/ temp1*0.43;
+ 165   1      //  gm_printf ( "PTC_R = %f  \r\n",temp2 );
+ 166   1        if ( temp2 < 122.93 )
+ 167   1        {
+ 168   2          return 0;
+ 169   2        }
+ 170   1      
+ 171   1        if ( temp2 >Temperature_Value )
+ 172   1        {
+ 173   2          temp1 = temp2 - Temperature_Value;
+ 174   2          i = ( u16 ) ( temp1 / 0.57 );
+ 175   2          bais_temp = bais_temp + i;
+ 176   2          if ( bais_temp > 100 )
+C51 COMPILER V9.56.0.0   MAIN                                                              08/28/2020 18:17:16 PAGE 4   
 
- 177   1        else  if ( temp2 < Temperature_Value )
- 178   1        {
- 179   2          temp1 = Temperature_Value - temp2;
- 180   2          i = ( u16 ) ( temp1 / 0.57 );
- 181   2          if ( i > 25 )
- 182   2          {
- 183   3            i = 25;
- 184   3          }
- 185   2      
- 186   2          bais_temp = bais_temp - i;
- 187   2        }
- 188   1        gm_printf ( "PTC_temper = %d  \r\n", bais_temp );
- 189   1      
- 190   1        return bais_temp;
- 191   1      }
- 192          
- 193          u16 temp_calc ( u16* adc_NTC_pdata )
- 194          {
- 195   1        float u1 = 0;
- 196   1        float u3 = 0;
- 197   1        int i = 0;
- 198   1        u32 adc_max =0;
- 199   1      
- 200   1      //  if ( PTC_VAL < 50 )
- 201   1      //  {
- 202   1      //    return 0xff;
- 203   1      //  }
- 204   1      //  gm_printf ( " adc_NTC_pdata:\r\n" );
- 205   1      //  for ( i=0; i<20; i++ )
- 206   1      //  {
- 207   1      //    gm_printf ( " %d  ",adc_NTC_pdata[i] );
- 208   1      //  }
- 209   1      //  gm_printf ( "\r\n" );
- 210   1        Sort ( adc_NTC_pdata, 20 );
- 211   1      //  gm_printf ( "sort:\r\n" );
- 212   1      //  for ( i=0; i<20; i++ )
- 213   1      //  {
- 214   1      //    gm_printf ( " %d  ",adc_NTC_pdata[i] );
- 215   1      //  }
- 216   1      //  gm_printf ( "\r\n" );
- 217   1      //  gm_printf ( "\r\n");
- 218   1      
- 219   1        //u1 = PTC_adc_val /1000;
- 220   1      
- 221   1      //   NTC_adc_val = sqrt ( NTC_adc_val/50 );
- 222   1      //  gm_printf ( "u1 = %d  \r\n",adc_NTC_pdata[19] );
- 223   1      
+ 177   2          {
+ 178   3            return 0xff;
+ 179   3          }
+ 180   2        }
+ 181   1        else  if ( temp2 < Temperature_Value )
+ 182   1        {
+ 183   2          temp1 = Temperature_Value - temp2;
+ 184   2          i = ( u16 ) ( temp1 / 0.57 );
+ 185   2          if ( i > 25 )
+ 186   2          {
+ 187   3            i = 25;
+ 188   3          }
+ 189   2      
+ 190   2          bais_temp = bais_temp - i;
+ 191   2        }
+ 192   1      //  gm_printf ( "PTC_temper = %d  \r\n", bais_temp );
+ 193   1      
+ 194   1        return bais_temp;
+ 195   1      }
+ 196          
+ 197          u16 temp_calc ( u16* adc_NTC_pdata )
+ 198          {
+ 199   1        float u1 = 0;
+ 200   1        float u3 = 0;
+ 201   1        int i = 0;
+ 202   1        u32 adc_max =0;
+ 203   1      
+ 204   1      //  if ( PTC_VAL < 50 )
+ 205   1      //  {
+ 206   1      //    return 0xff;
+ 207   1      //  }
+ 208   1      //  gm_printf ( " adc_NTC_pdata:\r\n" );
+ 209   1      //  for ( i=0; i<20; i++ )
+ 210   1      //  {
+ 211   1      //    gm_printf ( " %d  ",adc_NTC_pdata[i] );
+ 212   1      //  }
+ 213   1      //  gm_printf ( "\r\n" );
+ 214   1        Sort ( adc_NTC_pdata, 20 );
+ 215   1      //  gm_printf ( "sort:\r\n" );
+ 216   1      //  for ( i=0; i<20; i++ )
+ 217   1      //  {
+ 218   1      //    gm_printf ( " %d  ",adc_NTC_pdata[i] );
+ 219   1      //  }
+ 220   1      //  gm_printf ( "\r\n" );
+ 221   1      //  gm_printf ( "\r\n");
+ 222   1      
+ 223   1        //u1 = PTC_adc_val /1000;
  224   1      
- 225   1        u1 = ( float ) adc_NTC_pdata[19]/4095;
- 226   1      //  gm_printf ( "u1 = %f  \r\n",u1 );
- 227   1        u1 = u1*4;
- 228   1      //  gm_printf ( "u1 = %f  \r\n",u1 );
- 229   1        u1 = u1/1.414;
+ 225   1      //   NTC_adc_val = sqrt ( NTC_adc_val/50 );
+ 226   1      //  gm_printf ( "u1 = %d  \r\n",adc_NTC_pdata[19] );
+ 227   1      
+ 228   1      
+ 229   1        u1 = ( float ) adc_NTC_pdata[19]/4095;
  230   1      //  gm_printf ( "u1 = %f  \r\n",u1 );
- 231   1      
- 232   1        u3 = 120.00 - u1;
- 233   1      //  gm_printf ( "u3 = %f  \r\n",u3 );
- 234   1      
- 235   1        u3 = u3/u1*510;
- 236   1        gm_printf ( "NTC_R = %f  \r\n",u3 );
- 237   1        adc_max = u3/1000;
- 238   1        // gm_printf ( "adc_max = %d  \r\n",(u16)adc_max );
-C51 COMPILER V9.56.0.0   MAIN                                                              08/20/2020 19:57:58 PAGE 5   
+ 231   1        u1 = u1*4;
+ 232   1      //  gm_printf ( "u1 = %f  \r\n",u1 );
+ 233   1        u1 = u1/1.414;
+ 234   1      //  gm_printf ( "u1 = %f  \r\n",u1 );
+ 235   1      
+ 236   1        u3 = 120.00 - u1;
+ 237   1      //  gm_printf ( "u3 = %f  \r\n",u3 );
+ 238   1      
+C51 COMPILER V9.56.0.0   MAIN                                                              08/28/2020 18:17:16 PAGE 5   
 
- 239   1        i = look_up_table ( NTC_ADC_Table,30, ( u16 ) adc_max );
- 240   1        gm_printf ( "NTC_temp = %d  \r\n",i );
- 241   1        return ( i );
- 242   1      }
- 243          
- 244          void  temp_calc_AC_Insert ( u16* pdata_ac,u16* pdata_insert )
- 245          {
- 246   1        float u1 = 0;
- 247   1        float u3 = 0;
- 248   1        int i = 0;
- 249   1        u32 adc_max =0;
- 250   1      
- 251   1        Sort ( pdata_ac, 20 );
- 252   1        
- 253   1        gm_printf ( "AC:\r\n");
- 254   1        for ( i=0; i<20; i++ )
- 255   1        {
- 256   2          gm_printf ( " %d  ",pdata_ac[i] );
- 257   2        }
- 258   1        gm_printf ( "\r\n" );
- 259   1        gm_printf ( "pdata_ac_max = %d\r\n",pdata_ac[19]);
- 260   1        gm_printf ( "\r\n");
- 261   1        gm_printf ( "\r\n");
- 262   1      
- 263   1        gm_printf ( "Insert:\r\n");
- 264   1        Sort ( pdata_insert, 20 );
- 265   1        for ( i=0; i<20; i++ )
- 266   1        {
- 267   2          gm_printf ( " %d  ",pdata_insert[i] );
- 268   2        }
- 269   1        gm_printf ( "\r\n" );
- 270   1        gm_printf ( "pdata_insert_max = %d\r\n",pdata_insert[19]);
- 271   1        gm_printf ( "\r\n" );
- 272   1        gm_printf ( "\r\n" );
- 273   1        
- 274   1      
- 275   1      }
- 276          
- 277          
- 278          
- 279          
- 280          
- 281          /**
- 282            * @brief  temperature_handle
- 283          
- 284            * @param  temp_set
- 285            * @param  temp_now
- 286            * @retval None
- 287            */
- 288          void temperature_handle ( void )
- 289          {
- 290   1        u16 temp = 0;
- 291   1        static u16 adc_val1 = 0,adc_val3 = 0;
- 292   1        static u16 adc_val_input = 0,adc_val_insert = 0;
- 293   1        static u16 adc_test = 0;
- 294   1        static u8 adc_times = 0;
- 295   1        adc_cnt++;
- 296   1        if ( adc_test_std == 1 )
- 297   1        {
- 298   2      
- 299   2          if ( ++adc_test >= 50 )
- 300   2          {
-C51 COMPILER V9.56.0.0   MAIN                                                              08/20/2020 19:57:58 PAGE 6   
+ 239   1        u3 = u3/u1*510;
+ 240   1      //  gm_printf ( "NTC_R = %f  \r\n",u3 );
+ 241   1        adc_max = u3/1000;
+ 242   1        // gm_printf ( "adc_max = %d  \r\n",(u16)adc_max );
+ 243   1        i = look_up_table ( NTC_ADC_Table,30, ( u16 ) adc_max );
+ 244   1      //  gm_printf ( "NTC_temp = %d  \r\n",i );
+ 245   1        return ( i );
+ 246   1      }
+ 247          
+ 248          void  temp_calc_AC_Insert ( u16* pdata_ac,u16* pdata_insert )
+ 249          {
+ 250   1        float u1 = 0;
+ 251   1        float u3 = 0;
+ 252   1        int i = 0;
+ 253   1      
+ 254   1      
+ 255   1        Sort ( pdata_ac, 20 );
+ 256   1      
+ 257   1      //  gm_printf ( "AC:\r\n");
+ 258   1      //  for ( i=0; i<20; i++ )
+ 259   1      //  {
+ 260   1      //    gm_printf ( " %d  ",pdata_ac[i] );
+ 261   1      //  }
+ 262   1      //  gm_printf ( "\r\n" );
+ 263   1      //  gm_printf ( "pdata_ac = %d \r\n",pdata_ac[19]);
+ 264   1        adc_max = adc_max + pdata_ac[19];
+ 265   1        // gm_printf ( "pdata_ac_max = %d \r\n",adc_max);
+ 266   1        if ( times++ > 9 )
+ 267   1        {
+ 268   2          gm_printf ( "max = %d \r\n",adc_max );
+ 269   2      
+ 270   2          u1 = ( float ) ( adc_max / times );
+ 271   2          adc_max = 0;
+ 272   2          times = 0;
+ 273   2          gm_printf ( "u1 = %f \r\n",u1 );
+ 274   2          u1 = u1/4096 * 4.2;
+ 275   2          gm_printf ( "v1 = %f \r\n",u1 );
+ 276   2          u3 = u1/2.7*220;
+ 277   2          gm_printf ( "u3 = %f \r\n",u3 );
+ 278   2          u3 = u1 + u3 ;
+ 279   2          gm_printf ( "AC_sin = %f \r\n",u3 );
+ 280   2          u3 = u3/1.414;
+ 281   2          gm_printf ( "AC = %f \r\n",u3 );
+ 282   2        }
+ 283   1      
+ 284   1      
+ 285   1      //  gm_printf ( "\r\n");
+ 286   1      //  gm_printf ( "\r\n");
+ 287   1      //
+ 288   1      //  gm_printf ( "Insert:\r\n");
+ 289   1        Sort ( pdata_insert, 20 );
+ 290   1      //  for ( i=0; i<20; i++ )
+ 291   1      //  {
+ 292   1      //    gm_printf ( " %d  ",pdata_insert[i] );
+ 293   1      //  }
+ 294   1      //  gm_printf ( "\r\n" );
+ 295   1      //  gm_printf ( "pdata_insert_max = %d\r\n",pdata_insert[19] );
+ 296   1      //  gm_printf ( "\r\n" );
+ 297   1      //  gm_printf ( "\r\n" );
+ 298   1        if ( pdata_insert[19] > 150 )
+ 299   1        {
+ 300   2          Insert_std = 1;
+C51 COMPILER V9.56.0.0   MAIN                                                              08/28/2020 18:17:16 PAGE 6   
 
- 301   3      
- 302   3      
- 303   3      
- 304   3            adc_test = 0;
- 305   3            get_ADC_val ( &adc_val1, &adc_val3 );
- 306   3            calc_InputAndInsert_val ( &adc_val_input, &adc_val_insert );
- 307   3            ADC_val[adc_times] = adc_val3;
- 308   3            ADC_val_PTC[adc_times] = adc_val1;
- 309   3            ADC_val_AC[adc_times] = adc_val_input;
- 310   3            ADC_val_insert[adc_times] = adc_val_insert;
- 311   3            adc_times++;
- 312   3            //    PTC_adc_val = PTC_adc_val + adc_val1;
- 313   3      
- 314   3            //  NTC_adc_val = NTC_adc_val + ( adc_val3*adc_val1 );
- 315   3      
- 316   3          }
- 317   2          if ( adc_times > 20 )
- 318   2          {
- 319   3            adc_times = 0;
- 320   3            adc_test_std = 2;
- 321   3          }
- 322   2        }
- 323   1        if ( adc_cnt >= 50000 )
- 324   1        {
- 325   2          adc_cnt = 0;
- 326   2      
- 327   2          if ( adc_test_std == 2 )
- 328   2          {
- 329   3      //      gm_printf ( " adc_test_std = 2\r\n" );
- 330   3      //      gm_printf ( "\r\n" );
- 331   3            temp_calc ( ADC_val );
- 332   3            temp = temp_calc_PTC ( ADC_val_PTC );
- 333   3            temp_calc_AC_Insert ( ADC_val_AC,ADC_val_insert );
- 334   3            //  KEY_printf ( "PTC = %d  NTC =%d\r\n",PTC_adc_val,NTC_adc_val );  //pjw set
- 335   3      
- 336   3            adc_test_std = 1;
- 337   3            //  KEY_printf ( "temp val:%d \r\n",temp );
- 338   3          }
- 339   2          if ( 1 )  //adc_val1 >50
- 340   2          {
- 341   3            if ( 1 ) //get_device_state() == OFF
- 342   3            {
- 343   4              if ( first_heat_std == 1 )
- 344   4              {
- 345   5                first_heat_std = 0;
- 346   5                if ( temp > 50 )
- 347   5                {
- 348   6                  Heat_start_std = 1;
- 349   6                  Open_Heat_Value = corrected_value_GAP_4_temp  ;
- 350   6                }
- 351   5                else
- 352   5                {
- 353   6                  Heat_start_std = 1;
- 354   6                  Open_Heat_Value = corrected_value_warm_temp ;
- 355   6                }
- 356   5              }
- 357   4      
- 358   4              lcd_display_time ( flash_info.timer );
- 359   4              lcd_display_gap ( flash_info.gap );
- 360   4              //  Set_Temp ( temp );
- 361   4              set_pwm ( 10 );
- 362   4            }
-C51 COMPILER V9.56.0.0   MAIN                                                              08/20/2020 19:57:58 PAGE 7   
+ 301   2      //    KEY_printf ( " Insert_blanket \r\n" );
+ 302   2        }
+ 303   1        else
+ 304   1        {
+ 305   2          Insert_std = 0;
+ 306   2      //    KEY_printf ( " Uninsert_blanket \r\n" );
+ 307   2        }
+ 308   1      
+ 309   1      }
+ 310          
+ 311          
+ 312          
+ 313          
+ 314          
+ 315          /**
+ 316            * @brief  temperature_handle
+ 317          
+ 318            * @param  temp_set
+ 319            * @param  temp_now
+ 320            * @retval None
+ 321            */
+ 322          void temperature_handle ( void )
+ 323          {
+ 324   1        u16 temp = 0;
+ 325   1        static u16 adc_val1 = 0,adc_val3 = 0;
+ 326   1        static u16 adc_val_input = 0,adc_val_insert = 0;
+ 327   1        static u16 adc_test = 0;
+ 328   1        static u8 adc_times = 0;
+ 329   1        adc_cnt++;
+ 330   1        if ( adc_test_std == 1 )
+ 331   1        {
+ 332   2          set_pwm ( 10 );
+ 333   2      
+ 334   2          if ( ++adc_test >= 50 )
+ 335   2          {
+ 336   3      
+ 337   3      
+ 338   3      
+ 339   3            adc_test = 0;
+ 340   3            get_ADC_val ( &adc_val1, &adc_val3 );
+ 341   3            calc_InputAndInsert_val ( &adc_val_input, &adc_val_insert );
+ 342   3            ADC_val[adc_times] = adc_val3;
+ 343   3            ADC_val_PTC[adc_times] = adc_val1;
+ 344   3            ADC_val_AC[adc_times] = adc_val_input;
+ 345   3            ADC_val_insert[adc_times] = adc_val_insert;
+ 346   3            adc_times++;
+ 347   3            //    PTC_adc_val = PTC_adc_val + adc_val1;
+ 348   3      
+ 349   3            //  NTC_adc_val = NTC_adc_val + ( adc_val3*adc_val1 );
+ 350   3      
+ 351   3          }
+ 352   2          if ( adc_times > 20 )
+ 353   2          {
+ 354   3            adc_times = 0;
+ 355   3            adc_test_std = 2;
+ 356   3            if ( Heat_std == open )
+ 357   3            {
+ 358   4              set_pwm ( 10 );
+ 359   4            }
+ 360   3            else
+ 361   3            {
+ 362   4              set_pwm ( 0 );
+C51 COMPILER V9.56.0.0   MAIN                                                              08/28/2020 18:17:16 PAGE 7   
 
- 363   3            else
- 364   3            {
- 365   4              set_pwm ( 0 );
- 366   4              lcd_clear_all();
- 367   4            }
- 368   3            error_std = 0;
- 369   3          }
- 370   2          else
- 371   2          {
- 372   3            set_pwm ( 0 );
- 373   3      
- 374   3            lcd_error (  );
- 375   3            error_std = 1;
- 376   3          }
- 377   2      
- 378   2      //    ADC_EN = 1;  //close ADC
- 379   2        }
- 380   1      
- 381   1      
- 382   1      }
- 383          
- 384          
- 385          
- 386          
- 387          
- 388          
- 389          
- 390          
- 391          void main()
- 392          {
- 393   1        Clock();
- 394   1        uart_init();
- 395   1        adc_init();
- 396   1        EA = 1;
- 397   1        time0_init ();
- 398   1        key_init();
- 399   1        flash_init();
- 400   1        pwm_init ( 200 );
- 401   1        wdt_init ( 2 );
- 402   1        LCD_Init();
- 403   1        lcd_display_On();
- 404   1        delay_ms ( 1200 );
- 405   1        lcd_clear_all ();
- 406   1        gm_printf ( "\r\n==================================\r\n" );
- 407   1        gm_printf ( "sku:K%d \r\n", ( u16 ) SKU );
- 408   1        gm_printf ( "soft version:%s \r\n",SOFT_VER );
- 409   1        gm_printf ( "gap %d \r\n", ( u16 ) flash_info.gap );
- 410   1        gm_printf ( "timer %d \r\n", ( u16 ) flash_info.timer );
- 411   1        gm_printf ( "==================================\r\n" );
- 412   1      
- 413   1        while ( 1 )
- 414   1        {
- 415   2      
- 416   2          temperature_handle();
- 417   2          key_handle ();
- 418   2          clear_wdt();
- 419   2      
- 420   2        }
- 421   1      }
- 422          
- 423          
- 424          
-C51 COMPILER V9.56.0.0   MAIN                                                              08/20/2020 19:57:58 PAGE 8   
+ 363   4            }
+ 364   3          }
+ 365   2      
+ 366   2        }
+ 367   1        if ( adc_cnt >= 50000 )
+ 368   1        {
+ 369   2          adc_cnt = 0;
+ 370   2      
+ 371   2          if ( adc_test_std == 2 )
+ 372   2          {
+ 373   3      //
+ 374   3      //           if (Heat_std == open)
+ 375   3      //            {
+ 376   3      //             set_pwm ( 10 );
+ 377   3      //        }
+ 378   3      //       else
+ 379   3      //        {
+ 380   3      //             set_pwm ( 0 );
+ 381   3      //        }
+ 382   3      //      gm_printf ( " adc_test_std = 2\r\n" );
+ 383   3      //      gm_printf ( "\r\n" );
+ 384   3            temp_calc ( ADC_val );
+ 385   3            temp = temp_calc_PTC ( ADC_val_PTC );
+ 386   3            temp_calc_AC_Insert ( ADC_val_AC,ADC_val_insert );
+ 387   3            //  KEY_printf ( "PTC = %d  NTC =%d\r\n",PTC_adc_val,NTC_adc_val );  //pjw set
+ 388   3      
+ 389   3            adc_test_std = 1;
+ 390   3      
+ 391   3            //  KEY_printf ( "temp val:%d \r\n",temp );
+ 392   3          }
+ 393   2          if ( Insert_std == 1 )  //adc_val1 >50
+ 394   2          {
+ 395   3            if ( get_device_state() == ON ) //get_device_state() == OFF
+ 396   3            {
+ 397   4              if ( first_heat_std == 1 )
+ 398   4              {
+ 399   5                first_heat_std = 0;
+ 400   5                if ( temp > 50 )
+ 401   5                {
+ 402   6                  Heat_start_std = 1;
+ 403   6                  Open_Heat_Value = corrected_value_GAP_4_temp;
+ 404   6                }
+ 405   5                else
+ 406   5                {
+ 407   6                  Heat_start_std = 1;
+ 408   6                  Open_Heat_Value = corrected_value_warm_temp ;
+ 409   6                }
+ 410   5              }
+ 411   4      
+ 412   4              lcd_display_time ( flash_info.timer );
+ 413   4              lcd_display_gap ( flash_info.gap );
+ 414   4              Set_Temp ( temp );
+ 415   4              //set_pwm ( 10 );
+ 416   4      
+ 417   4            }
+ 418   3            else
+ 419   3            {
+ 420   4              set_pwm ( 0 );
+ 421   4              lcd_clear_all();
+ 422   4            }
+ 423   3            error_std = 0;
+ 424   3          }
+C51 COMPILER V9.56.0.0   MAIN                                                              08/28/2020 18:17:16 PAGE 8   
 
- 425          void Clock ( void )
- 426          {
- 427   1        /************************************??????????****************************************/
- 428   1        CLKSWR = 0x51;            //Fosc=16MHz
- 429   1        CLKDIV = 0x01;            //Fosc/1 = Fcpu=16MHz
- 430   1      }
- 431          
- 432          
- 433          /**
- 434            * @brief  controll_PWM on/off heat
- 435            * @param  temp_set
- 436            * @param  temp_now
- 437            * @retval None
- 438            */
+ 425   2          else
+ 426   2          {
+ 427   3            set_pwm ( 0 );
+ 428   3      
+ 429   3            lcd_error (  );
+ 430   3            error_std = 1;
+ 431   3          }
+ 432   2      
+ 433   2      //    ADC_EN = 1;  //close ADC
+ 434   2        }
+ 435   1      
+ 436   1      
+ 437   1      }
+ 438          
  439          
- 440          void Controll_Heat ( u16 temp_set,u16 temp_now )
- 441          {
- 442   1      
- 443   1        if ( temp_now >=  temp_set   )
- 444   1        {
- 445   2          //KEY_printf ( "close_heat \r\n");
- 446   2          set_pwm ( 0 );
- 447   2        }
- 448   1        else if ( temp_now <= ( temp_set - Open_Heat_Value ) )
- 449   1        {
- 450   2          //KEY_printf ( "open_heat \r\n");
- 451   2          set_pwm ( 10 );
- 452   2        }
- 453   1      }
- 454          /**
- 455            * @brief  set temperature from now_temper and GAP
- 456            * @param  now_temper
- 457            * @param  null
- 458            * @retval None
- 459            */
- 460          
- 461          void Set_Temp ( u16 temp )
- 462          {
- 463   1      
- 464   1      
- 465   1        switch ( flash_info.gap )
- 466   1        {
- 467   2          case GAP_WARM:
- 468   2            Controll_Heat ( GAP_WARM_temp,temp );
- 469   2            break;
- 470   2          case GAP_1:
- 471   2            Controll_Heat ( GAP_1_temp,temp );
- 472   2            break;
- 473   2          case GAP_2:
- 474   2            Controll_Heat ( GAP_2_temp,temp );
- 475   2            break;
- 476   2          case GAP_3:
- 477   2            Controll_Heat ( GAP_3_temp,temp );
- 478   2            break;
- 479   2          case GAP_H:
- 480   2            Controll_Heat ( GAP_4_temp,temp );
- 481   2            break;
- 482   2          case GAP_5:
- 483   2            Controll_Heat ( GAP_5_temp,temp );
- 484   2            break;
- 485   2          case GAP_6:
- 486   2            Controll_Heat ( GAP_6_temp,temp );
-C51 COMPILER V9.56.0.0   MAIN                                                              08/20/2020 19:57:58 PAGE 9   
+ 440          
+ 441          
+ 442          
+ 443          
+ 444          
+ 445          
+ 446          void main()
+ 447          {
+ 448   1        Clock();
+ 449   1        uart_init();
+ 450   1        adc_init();
+ 451   1        EA = 1;
+ 452   1        time0_init ();
+ 453   1        key_init();
+ 454   1        flash_init();
+ 455   1        pwm_init ( 200 );
+ 456   1        wdt_init ( 2 );
+ 457   1        LCD_Init();
+ 458   1        lcd_display_On();
+ 459   1        delay_ms ( 1200 );
+ 460   1        lcd_clear_all ();
+ 461   1        gm_printf ( "\r\n==================================\r\n" );
+ 462   1        gm_printf ( "sku:K%d \r\n", ( u16 ) SKU );
+ 463   1        gm_printf ( "soft version:%s \r\n",SOFT_VER );
+ 464   1        gm_printf ( "gap %d \r\n", ( u16 ) flash_info.gap );
+ 465   1        gm_printf ( "timer %d \r\n", ( u16 ) flash_info.timer );
+ 466   1        gm_printf ( "==================================\r\n" );
+ 467   1      
+ 468   1        while ( 1 )
+ 469   1        {
+ 470   2      
+ 471   2          temperature_handle();
+ 472   2          key_handle ();
+ 473   2          clear_wdt();
+ 474   2      
+ 475   2        }
+ 476   1      }
+ 477          
+ 478          
+ 479          
+ 480          void Clock ( void )
+ 481          {
+ 482   1        /************************************??????????****************************************/
+ 483   1        CLKSWR = 0x51;            //Fosc=16MHz
+ 484   1        CLKDIV = 0x01;            //Fosc/1 = Fcpu=16MHz
+ 485   1      }
+ 486          
+C51 COMPILER V9.56.0.0   MAIN                                                              08/28/2020 18:17:16 PAGE 9   
 
- 487   2            break;
- 488   2          case GAP_7:
- 489   2            Controll_Heat ( GAP_7_temp,temp );
- 490   2            break;
- 491   2          case GAP_8:
- 492   2            Controll_Heat ( GAP_8_temp,temp );
- 493   2            break;
- 494   2          case GAP_9:
- 495   2            Controll_Heat ( GAP_9_temp,temp );
- 496   2            break;
- 497   2      
- 498   2        }
- 499   1      }
- 500          
- 501          /**
- 502            * @brief  protect -> Over  2H exchange GAP1
- 503            * @param  null
- 504            * @param  null
- 505            * @retval None
- 506            */
- 507          //void Protect ( void )
- 508          //{
- 509          //  if ( over_rang_time_std == 1 )
- 510          //  {
- 511          //    if ( flash_info.gap > GAP_1 )
- 512          //    {
- 513          //      flash_info.gap = GAP_1;
- 514          //
- 515          //      flah_save_data();
- 516          //      over_rang_time_std = 0;
- 517          //    }
- 518          //  }
- 519          //}
- 520          
- 521          u8 look_up_table ( const u16* a,u8 ArrayLong,u16 Data )
- 522          {
- 523   1        u16 begin,end,middle ;
- 524   1        u8 i ;
- 525   1        begin = 0 ;
- 526   1        end = ArrayLong-1 ;
- 527   1        i = 0  ;
- 528   1        if ( Data >= a[begin] )
- 529   1        {
- 530   2      
- 531   2          return begin ;
- 532   2        }
- 533   1        else if ( Data <= a[end] )
- 534   1        {
- 535   2          return 100 ;
- 536   2        }
- 537   1        while ( begin < end )
- 538   1        {
- 539   2          middle = ( begin+end ) /2 ;
- 540   2          if ( Data == a[middle] )
- 541   2          {
- 542   3            break ;
- 543   3          }
- 544   2          if ( Data < a[middle] && Data > a[middle+1] )
- 545   2          {
- 546   3            break ;
- 547   3          }
- 548   2          if ( Data > a[middle] )
-C51 COMPILER V9.56.0.0   MAIN                                                              08/20/2020 19:57:58 PAGE 10  
+ 487          
+ 488          /**
+ 489            * @brief  controll_PWM on/off heat
+ 490            * @param  temp_set
+ 491            * @param  temp_now
+ 492            * @retval None
+ 493            */
+ 494          
+ 495          void Controll_Heat ( u16 temp_set,u16 temp_now )
+ 496          {
+ 497   1      
+ 498   1        if ( temp_now >=  temp_set   )
+ 499   1        {
+ 500   2          //KEY_printf ( "close_heat \r\n");
+ 501   2          Heat_std = CLOSE;
+ 502   2          set_pwm ( 0 );
+ 503   2        }
+ 504   1        else if ( temp_now <= ( temp_set - Open_Heat_Value ) )
+ 505   1        {
+ 506   2          //KEY_printf ( "open_heat \r\n");
+ 507   2          Heat_std = open;
+ 508   2          set_pwm ( 10 );
+ 509   2        }
+ 510   1      }
+ 511          /**
+ 512            * @brief  set temperature from now_temper and GAP
+ 513            * @param  now_temper
+ 514            * @param  null
+ 515            * @retval None
+ 516            */
+ 517          
+ 518          void Set_Temp ( u16 temp )
+ 519          {
+ 520   1      
+ 521   1      
+ 522   1        switch ( flash_info.gap )
+ 523   1        {
+ 524   2          case GAP_WARM:
+ 525   2            Controll_Heat ( GAP_WARM_temp,temp );
+ 526   2            break;
+ 527   2          case GAP_1:
+ 528   2            Controll_Heat ( GAP_1_temp,temp );
+ 529   2            break;
+ 530   2          case GAP_2:
+ 531   2            Controll_Heat ( GAP_2_temp,temp );
+ 532   2            break;
+ 533   2          case GAP_3:
+ 534   2            Controll_Heat ( GAP_3_temp,temp );
+ 535   2            break;
+ 536   2          case GAP_H:
+ 537   2            Controll_Heat ( GAP_4_temp,temp );
+ 538   2            break;
+ 539   2          case GAP_5:
+ 540   2            Controll_Heat ( GAP_5_temp,temp );
+ 541   2            break;
+ 542   2          case GAP_6:
+ 543   2            Controll_Heat ( GAP_6_temp,temp );
+ 544   2            break;
+ 545   2          case GAP_7:
+ 546   2            Controll_Heat ( GAP_7_temp,temp );
+ 547   2            break;
+ 548   2          case GAP_8:
+C51 COMPILER V9.56.0.0   MAIN                                                              08/28/2020 18:17:16 PAGE 10  
 
- 549   2          {
- 550   3            end = middle ;
- 551   3          }
- 552   2          else
- 553   2          {
- 554   3            begin = middle ;
- 555   3          }
- 556   2          if ( i++ > ArrayLong )
- 557   2          {
- 558   3            break ;
- 559   3          }
- 560   2        }
- 561   1        if ( begin > end )
- 562   1        {
- 563   2          return 0 ;
- 564   2        }
- 565   1        return middle+70 ;
- 566   1      }
- 567          
- 568          //u8 calcuTem(u16 RW,const u16 * tempRes_buf)
- 569          //{
- 570          //  u8 tempValue= 108;
- 571          //  u8 i = 0;
- 572          //  if ((RW < 4000)&&(RW > 6))
- 573          //  {
- 574          //    for ( i = 0 ; i < 181 ; i++)
- 575          //    {
- 576          //      if (RW >= tempRes_buf[i])
- 577          //      {
- 578          //        tempValue = i+20;
- 579          //        break;
- 580          //      }
- 581          //    }
- 582          //  }
- 583          //
- 584          //  return tempValue;
- 585          //}
- 586          void Sort ( u16* arr, int n )
- 587          {
- 588   1        int m, i, j;
- 589   1        for ( i = 0; i < n - 1; i++ )
- 590   1          for ( j = 0; j < n - 1 - i; j++ )
- 591   1            if ( arr[j] > arr[j + 1] )
- 592   1            {
- 593   2              m = arr[j];
- 594   2              arr[j] = arr[j + 1];
- 595   2              arr[j + 1] = m;
- 596   2            }
- 597   1      }
- 598          
- 599          
- 600          
- 601          
-*** WARNING C294 IN LINE 365 OF ..\user\main.c: unreachable code
-*** WARNING C294 IN LINE 372 OF ..\user\main.c: unreachable code
+ 549   2            Controll_Heat ( GAP_8_temp,temp );
+ 550   2            break;
+ 551   2          case GAP_9:
+ 552   2            Controll_Heat ( GAP_9_temp,temp );
+ 553   2            break;
+ 554   2      
+ 555   2        }
+ 556   1      }
+ 557          
+ 558          /**
+ 559            * @brief  protect -> Over  2H exchange GAP1
+ 560            * @param  null
+ 561            * @param  null
+ 562            * @retval None
+ 563            */
+ 564          //void Protect ( void )
+ 565          //{
+ 566          //  if ( over_rang_time_std == 1 )
+ 567          //  {
+ 568          //    if ( flash_info.gap > GAP_1 )
+ 569          //    {
+ 570          //      flash_info.gap = GAP_1;
+ 571          //
+ 572          //      flah_save_data();
+ 573          //      over_rang_time_std = 0;
+ 574          //    }
+ 575          //  }
+ 576          //}
+ 577          
+ 578          u8 look_up_table ( const u16* a,u8 ArrayLong,u16 Data )
+ 579          {
+ 580   1        u16 begin,end,middle ;
+ 581   1        u8 i ;
+ 582   1        begin = 0 ;
+ 583   1        end = ArrayLong-1 ;
+ 584   1        i = 0  ;
+ 585   1        if ( Data >= a[begin] )
+ 586   1        {
+ 587   2      
+ 588   2          return begin ;
+ 589   2        }
+ 590   1        else if ( Data <= a[end] )
+ 591   1        {
+ 592   2          return 100 ;
+ 593   2        }
+ 594   1        while ( begin < end )
+ 595   1        {
+ 596   2          middle = ( begin+end ) /2 ;
+ 597   2          if ( Data == a[middle] )
+ 598   2          {
+ 599   3            break ;
+ 600   3          }
+ 601   2          if ( Data < a[middle] && Data > a[middle+1] )
+ 602   2          {
+ 603   3            break ;
+ 604   3          }
+ 605   2          if ( Data > a[middle] )
+ 606   2          {
+ 607   3            end = middle ;
+ 608   3          }
+ 609   2          else
+ 610   2          {
+C51 COMPILER V9.56.0.0   MAIN                                                              08/28/2020 18:17:16 PAGE 11  
+
+ 611   3            begin = middle ;
+ 612   3          }
+ 613   2          if ( i++ > ArrayLong )
+ 614   2          {
+ 615   3            break ;
+ 616   3          }
+ 617   2        }
+ 618   1        if ( begin > end )
+ 619   1        {
+ 620   2          return 0 ;
+ 621   2        }
+ 622   1        return middle+70 ;
+ 623   1      }
+ 624          
+ 625          //u8 calcuTem(u16 RW,const u16 * tempRes_buf)
+ 626          //{
+ 627          //  u8 tempValue= 108;
+ 628          //  u8 i = 0;
+ 629          //  if ((RW < 4000)&&(RW > 6))
+ 630          //  {
+ 631          //    for ( i = 0 ; i < 181 ; i++)
+ 632          //    {
+ 633          //      if (RW >= tempRes_buf[i])
+ 634          //      {
+ 635          //        tempValue = i+20;
+ 636          //        break;
+ 637          //      }
+ 638          //    }
+ 639          //  }
+ 640          //
+ 641          //  return tempValue;
+ 642          //}
+ 643          void Sort ( u16* arr, int n )
+ 644          {
+ 645   1        int m, i, j;
+ 646   1        for ( i = 0; i < n - 1; i++ )
+ 647   1          for ( j = 0; j < n - 1 - i; j++ )
+ 648   1            if ( arr[j] > arr[j + 1] )
+ 649   1            {
+ 650   2              m = arr[j];
+ 651   2              arr[j] = arr[j + 1];
+ 652   2              arr[j + 1] = m;
+ 653   2            }
+ 654   1      }
+ 655          
+ 656          
+ 657          
+ 658          
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =   2911    ----
-   CONSTANT SIZE    =    311    ----
-   XDATA SIZE       =    237      82
+   CODE SIZE        =   2953    ----
+   CONSTANT SIZE    =    245    ----
+   XDATA SIZE       =    241      72
    PDATA SIZE       =   ----    ----
-C51 COMPILER V9.56.0.0   MAIN                                                              08/20/2020 19:57:58 PAGE 11  
-
    DATA SIZE        =   ----    ----
    IDATA SIZE       =   ----    ----
    BIT SIZE         =   ----    ----
 END OF MODULE INFORMATION.
 
 
-C51 COMPILATION COMPLETE.  2 WARNING(S),  0 ERROR(S)
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

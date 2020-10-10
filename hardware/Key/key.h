@@ -4,7 +4,7 @@
 
 #define KEY_1 	   P0_1
 #define KEY_2 	   P2_0
-#define KEY_3 	   P0_0
+#define KEY_3 	   P2_7
 #define EN_BT134   P2_1
 
 

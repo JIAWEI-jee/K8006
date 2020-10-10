@@ -2,16 +2,17 @@
 #include "flash.h"
 #include "uart.h"
 #include "lcddisplay.h"
+#include "pwm.h"
+
 
 //----------------time---------------
 u16 time_cnt = 0;
 u16 time_sec = 0;
-
-
 u8  Open_Heat_Value = 0;
 u8 Heat_start_std = 0;
 u16 time_heat = 0;
-u16 temp_time = 0 ;
+
+
 void set_time_sec_val ( u16 sec )
 {
 	time_sec = sec;
@@ -48,32 +49,32 @@ void set_time_sec ( void )
 	if ( flash_info.timer == TIMER_ON )
 	{
 		time_sec = 0;
-		temp_time = 0;
+		
 	}
 	else if ( flash_info.timer == TIMER_0_5H )
 	{
 		time_sec = 30*60;
-		temp_time = 0;
+	
 	}
 	else if ( flash_info.timer == TIMER_1H )
 	{
 		time_sec = 60*60;
-		temp_time = 0;
+		
 	}
 	else if ( flash_info.timer == TIMER_2H )
 	{
 		time_sec = 2*60*60;
-		temp_time = 0;
+		
 	}
 	else if ( flash_info.timer == TIMER_4H )
 	{
 		time_sec = 4*60*60;
-		temp_time = 0;
+	
 	}
 	else if ( flash_info.timer == TIMER_8H )
 	{
 		time_sec = 8*60*60;
-		temp_time = 0;
+		
 	}
 	gm_printf ( "time second:%d \r\n",time_sec );
 }
@@ -107,28 +108,32 @@ void time0_init ( void )
 //10ms
 void TIMER0_Rpt ( void ) interrupt TIMER0_VECTOR
 {
-	if ( get_device_state() == ON ) //flash_info.timer != TIMER_ON &&
+	if ( get_device_state() == ON ) //
 	{
 		time_cnt++;
+		
 		if ( time_cnt >= 500 )
 		{
+
+		
 			set_heat_val();
 			if ( time_sec > 0 )
 			{
 
 				time_sec--;
-			
+
 				if ( flash_info.timer != TIMER_ON )
 				{
 					set_device_state ( OFF );
 					time_sec = 0;
-					gm_printf ( "time off \r\n" );
+					//gm_printf ( "time off \r\n" );
 				}
-			}	
+			}
 			//	gm_printf("time_sec=%d \r\n",time_sec);
 			time_cnt = 0;
+		}
 	}
-}	
 	LCD_Display();
+
 }
 

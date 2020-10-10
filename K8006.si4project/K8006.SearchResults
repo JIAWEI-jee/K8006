@@ -1,8 +1,2 @@
----- temp_time Matches (7 in 1 files) ----
-timer.c (hardware\Timer) line 14 : u16 temp_time = 0 ;
-set_time_sec in timer.c (hardware\Timer) : 		temp_time = 0;
-set_time_sec in timer.c (hardware\Timer) : 		temp_time = 0;
-set_time_sec in timer.c (hardware\Timer) : 		temp_time = 0;
-set_time_sec in timer.c (hardware\Timer) : 		temp_time = 0;
-set_time_sec in timer.c (hardware\Timer) : 		temp_time = 0;
-set_time_sec in timer.c (hardware\Timer) : 		temp_time = 0;
+---- Heat_std Matches (1 in 1 files) ----
+main.c (user) line 46 : u8  Heat_std = 0;

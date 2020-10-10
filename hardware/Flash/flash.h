@@ -65,6 +65,11 @@ typedef enum DEVICE_STATE
 	OFF = 0X01
 };
 
+typedef enum HEAT_STD
+{
+	open	= 1,
+	CLOSE  =2
+};
 
 typedef struct _flash_info_t
 {

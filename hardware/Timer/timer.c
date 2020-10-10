@@ -2,15 +2,16 @@
 #include "flash.h"
 #include "uart.h"
 #include "lcddisplay.h"
+#include "pwm.h"
+
 
 //----------------time---------------
 u16 time_cnt = 0;
 u16 time_sec = 0;
-
-
 u8  Open_Heat_Value = 0;
 u8 Heat_start_std = 0;
 u16 time_heat = 0;
+
 
 void set_time_sec_val ( u16 sec )
 {
@@ -26,7 +27,7 @@ static void set_heat_val ( void )
 	{
 		if ( ++time_heat > Heat_Value )
 		{
-			KEY_printf ( "exchange_heat_value \r\n" );
+//			KEY_printf ( "exchange_heat_value \r\n" );
 			Heat_start_std = 0;
 			time_heat = 0;
 			if ( flash_info.gap > 1 )
@@ -48,32 +49,32 @@ void set_time_sec ( void )
 	if ( flash_info.timer == TIMER_ON )
 	{
 		time_sec = 0;
-		
+
 	}
 	else if ( flash_info.timer == TIMER_0_5H )
 	{
 		time_sec = 30*60;
-	
+
 	}
 	else if ( flash_info.timer == TIMER_1H )
 	{
 		time_sec = 60*60;
-		
+
 	}
 	else if ( flash_info.timer == TIMER_2H )
 	{
 		time_sec = 2*60*60;
-		
+
 	}
 	else if ( flash_info.timer == TIMER_4H )
 	{
 		time_sec = 4*60*60;
-	
+
 	}
 	else if ( flash_info.timer == TIMER_8H )
 	{
 		time_sec = 8*60*60;
-		
+
 	}
 	gm_printf ( "time second:%d \r\n",time_sec );
 }
@@ -94,8 +95,8 @@ void time0_init ( void )
 	//		   	= 65536 - ((1/1000) / (1/(16000000 / 12)))
 	//			= 65536 - 1333
 	//			= 0xFACB
-//    TH0 = 0xCB;  10ms
-//	TL0 = 0xEB;
+    //    TH0 = 0xCB;  10ms
+    //	TL0 = 0xEB;
 	TH0 = 0xF5;
 	TL0 = 0x96;							//T0定时时间2ms     0x96     10ms   0xFB
 	IE |= 0x02;							//打开T0中断
@@ -107,11 +108,14 @@ void time0_init ( void )
 //10ms
 void TIMER0_Rpt ( void ) interrupt TIMER0_VECTOR
 {
-	if ( get_device_state() == ON ) //flash_info.timer != TIMER_ON &&
+	if ( get_device_state() == ON ) 
 	{
 		time_cnt++;
+
 		if ( time_cnt >= 500 )
 		{
+
+
 			set_heat_val();
 			if ( time_sec > 0 )
 			{
@@ -122,13 +126,13 @@ void TIMER0_Rpt ( void ) interrupt TIMER0_VECTOR
 				{
 					set_device_state ( OFF );
 					time_sec = 0;
-					gm_printf ( "time off \r\n" );
+					//gm_printf ( "time off \r\n" );
 				}
 			}
-			//	gm_printf("time_sec=%d \r\n",time_sec);
 			time_cnt = 0;
 		}
 	}
 	LCD_Display();
+
 }
 

@@ -28,8 +28,6 @@ Project File Date:  07/23/2020
 Rebuild target 'Target 1'
 assembling STARTUP.A51...
 compiling main.c...
-..\user\main.c(365): warning C294: unreachable code
-..\user\main.c(372): warning C294: unreachable code
 compiling delay.c...
 compiling adc.c...
 compiling flash.c...
@@ -41,19 +39,17 @@ compiling timer.c...
 compiling lcddisplay.c...
 linking...
 *** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
-    SEGMENT: ?PR?_SET_TEMP?MAIN
-*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
     SEGMENT: ?PR?_SET_TIME_SEC_VAL?TIMER
 *** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
-    SEGMENT: ?PR?LCD_ERROR?LCDDISPLAY
+    SEGMENT: ?PR?_LCD_OFF?LCDDISPLAY
 *** WARNING L15: MULTIPLE CALL TO SEGMENT
     SEGMENT: ?PR?PRINTF?PRINTF
     CALLER1: ?C_C51STARTUP
     CALLER2: ?PR?TIMER0_RPT?TIMER
-Program Size: data=21.3 xdata=505 code=10264
+Program Size: data=21.3 xdata=500 code=10628
 creating hex file from ".\Objects\HC_hex"...
-".\Objects\HC_hex" - 0 Error(s), 6 Warning(s).
-Build Time Elapsed:  00:00:01
+".\Objects\HC_hex" - 0 Error(s), 3 Warning(s).
+Build Time Elapsed:  00:00:02
 </pre>
 </body>
 </html>
